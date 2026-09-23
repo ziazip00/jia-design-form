@@ -12,10 +12,19 @@ export interface BaseLayer {
   locked: boolean;
   zIndex: number;
   shadowColor?: string;
+  shadowEnabled?: boolean;
   shadowOpacity?: number;
   shadowBlur?: number;
   shadowOffsetX?: number;
   shadowOffsetY?: number;
+  outlineEnabled?: boolean;
+  outlineColor?: string;
+  outlineWidth?: number;
+  outlineDash?: "solid" | "dashed" | "dotted";
+  glowEnabled?: boolean;
+  glowColor?: string;
+  glowOpacity?: number;
+  glowBlur?: number;
 }
 export interface TextLayer extends BaseLayer {
   type: "text";

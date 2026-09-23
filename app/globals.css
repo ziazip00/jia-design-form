@@ -1183,3 +1183,24 @@ h3 {
     justify-content: flex-end;
   }
 }
+.effect-help {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6c8195;
+}
+.effect-reset {
+  width: 100%;
+  border: 1px solid #dbe5ee;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.color-field input[type="text"] {
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  border: 0;
+  padding: 3px 0;
+  font-size: 12px;
+  background: transparent;
+}

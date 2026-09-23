@@ -91,3 +91,22 @@ test("history has a bounded capacity and ignores unchanged patches", () => {
   store.getState().patch(l.id, { x: 99 });
   assert.equal(store.getState().past, before);
 });
+
+test('text and image style effects survive duplicate, reset and history navigation', () => {
+  for (const type of ['text', 'image'] as const) {
+    const layer = makeLayer(type);
+    store.getState().add(layer);
+    const effects = { outlineEnabled: true, outlineWidth: 4.5, outlineColor: '#123456', outlineDash: 'dotted', shadowEnabled: true, shadowOpacity: .4, shadowOffsetX: -12, glowEnabled: true, glowColor: '#ff9900', glowBlur: 45 };
+    store.getState().patch(layer.id, effects);
+    store.getState().duplicate();
+    const copyId = store.getState().selectedId!;
+    const copy = store.getState().document.layers.find(l => l.id === copyId)!;
+    for (const [key, value] of Object.entries(effects)) assert.equal((copy as unknown as Record<string, unknown>)[key], value);
+    store.getState().patch(copyId, { outlineEnabled: false, shadowEnabled: false, glowEnabled: false });
+    store.getState().undo();
+    assert.equal(store.getState().document.layers.find(l => l.id === copyId)?.glowEnabled, true);
+    store.getState().redo();
+    assert.equal(store.getState().document.layers.find(l => l.id === copyId)?.glowEnabled, false);
+    assert.equal(store.getState().document.layers.find(l => l.id === layer.id)?.glowEnabled, true);
+  }
+});
