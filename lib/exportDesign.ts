@@ -5,6 +5,17 @@ export async function exportDesign(
   doc: DesignDocument,
   format: "png" | "jpeg",
 ) {
+  const url = await renderDesign(stage, doc, format);
+  const a = document.createElement("a");
+  a.download = `${doc.name.replace(/[<>:"/\\|?*]/g, "_")}.${format === "jpeg" ? "jpg" : "png"}`;
+  a.href = url;
+  a.click();
+}
+export async function renderDesign(
+  stage: Konva.Stage,
+  doc: DesignDocument,
+  format: "png" | "jpeg" = "png",
+) {
   await document.fonts.ready;
   for (const node of stage.find("Image")) {
     if (!node.getAttr("image")) throw new Error("이미지 로딩 중");
@@ -23,10 +34,7 @@ export async function exportDesign(
       mimeType: `image/${format}`,
       quality: 0.95,
     });
-    const a = document.createElement("a");
-    a.download = `${doc.name.replace(/[<>:"/\\|?*]/g, "_")}.${format === "jpeg" ? "jpg" : "png"}`;
-    a.href = url;
-    a.click();
+    return url;
   } finally {
     copy.destroy();
   }

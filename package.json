@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
-    "build": "next build",
+    "build": "next build && node scripts/build-worker.mjs",
     "prepare:image-tools": "node scripts/prepare-image-tools.mjs",
     "start": "node scripts/serve.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js tests/generation.test.mjs tests/separation.test.mjs"
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js tests/generation.test.mjs tests/separation.test.mjs tests/images.test.mjs"
   },
   "dependencies": {
     "konva": "^10.0.0",

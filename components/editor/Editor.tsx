@@ -18,12 +18,12 @@ import {
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { makeLayer, blankDocument } from "@/lib/designParser";
-import { exportDesign } from "@/lib/exportDesign";
+import { exportDesign, renderDesign } from "@/lib/exportDesign";
 import CanvasEditor from "./CanvasEditor";
 import EditorToolbar from "./EditorToolbar";
 import LayerPanel from "./LayerPanel";
 import PropertiesPanel from "./PropertiesPanel";
-import PromptBar from "./PromptBar";
+import AIComposer from "./AIComposer";
 import ImageSeparationDialog from "./ImageSeparationDialog";
 import type { ImageLayer } from "@/types/design";
 export default function Editor() {
@@ -286,9 +286,42 @@ export default function Editor() {
         </aside>
         <div className="center">
           <CanvasEditor stageRef={stageRef} />
-          <PromptBar
+          <AIComposer
             onSeparate={startSeparation}
-            onUpload={(file) => void upload(file, true)}
+            onCapture={async () => {
+              if (!stageRef.current) throw new Error("Canvas not ready");
+              return renderDesign(
+                stageRef.current,
+                useEditorStore.getState().document,
+              );
+            }}
+            onApply={async (src, separate) => {
+              const image = new window.Image();
+              image.src = src;
+              await image.decode();
+              const state = useEditorStore.getState();
+              const scale = Math.min(
+                state.document.canvas.width / image.width,
+                state.document.canvas.height / image.height,
+              );
+              const layer = makeLayer("image", {
+                src,
+                name: "AI 완성 이미지",
+                x: (state.document.canvas.width - image.width * scale) / 2,
+                y: (state.document.canvas.height - image.height * scale) / 2,
+                width: image.width * scale,
+                height: image.height * scale,
+              }) as ImageLayer;
+              state.add(layer);
+              if (separate)
+                setSeparateLayer(
+                  useEditorStore
+                    .getState()
+                    .document.layers.find(
+                      (l) => l.id === layer.id,
+                    ) as ImageLayer,
+                );
+            }}
           />
         </div>
         <PropertiesPanel onSeparate={startSeparation} />

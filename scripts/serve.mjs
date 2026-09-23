@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { generate } from "../server/generate.mjs";
+import { images } from "../server/images.mjs";
 import { Readable } from "node:stream";
 
 const root = path.resolve("out");
@@ -26,7 +27,7 @@ createServer(async (req, res) => {
     const pathname = decodeURIComponent(
       new URL(req.url, "http://localhost").pathname,
     );
-    if (pathname === "/api/generate") {
+    if (pathname === "/api/generate" || pathname === "/api/images") {
       const request = new Request(`http://127.0.0.1:${port}${req.url}`, {
         method: req.method,
         headers: req.headers,
@@ -34,7 +35,11 @@ createServer(async (req, res) => {
           ? { body: Readable.toWeb(req), duplex: "half" }
           : {}),
       });
-      const response = await generate(request, process.env, { local: true });
+      const response = await (pathname === "/api/images" ? images : generate)(
+        request,
+        process.env,
+        { local: true },
+      );
       res.writeHead(response.status, Object.fromEntries(response.headers));
       res.end(Buffer.from(await response.arrayBuffer()));
       return;
