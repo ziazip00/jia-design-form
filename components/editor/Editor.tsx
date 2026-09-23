@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { makeLayer, blankDocument } from "@/lib/designParser";
-import { exportDesign, renderDesign } from "@/lib/exportDesign";
+import { exportDesign } from "@/lib/exportDesign";
+import { fitImage } from "@/lib/imagePlacement";
+import ConnectionsDialog from "./ConnectionsDialog";
 import CanvasEditor from "./CanvasEditor";
 import EditorToolbar from "./EditorToolbar";
 import LayerPanel from "./LayerPanel";
@@ -33,6 +35,7 @@ export default function Editor() {
     [message, setMessage] = useState("");
   const [separateLayer, setSeparateLayer] = useState<ImageLayer | null>(null);
   const splitUpload = useRef(false);
+  const [connections, setConnections] = useState(false);
   const s = useEditorStore();
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -100,16 +103,10 @@ export default function Editor() {
         i.onerror = reject;
         i.src = src;
       });
-      const scale = Math.min(
-        1,
-        (s.document.canvas.width * 0.7) / image.width,
-        (s.document.canvas.height * 0.7) / image.height,
-      );
       const added = makeLayer("image", {
         name: file.name,
         src,
-        width: Math.round(image.width * scale),
-        height: Math.round(image.height * scale),
+        ...fitImage(image.width, image.height, useEditorStore.getState().document.canvas),
       }) as ImageLayer;
       useEditorStore.getState().add(added);
       if (separate)
@@ -139,6 +136,7 @@ export default function Editor() {
   return (
     <div className="editor">
       <EditorToolbar
+        onConnections={() => setConnections(true)}
         onExport={async (format) => {
           try {
             if (stageRef.current) {
@@ -158,7 +156,6 @@ export default function Editor() {
             { name: "Design", icon: LayoutTemplate },
             { name: "Text", icon: Type },
             { name: "Image", icon: ImagePlus },
-            { name: "Icon", icon: Sparkles },
             { name: "Shape", icon: Shapes },
             { name: "Layers", icon: Layers },
           ].map(({ name, icon: Icon }) => (
@@ -288,29 +285,15 @@ export default function Editor() {
           <CanvasEditor stageRef={stageRef} />
           <AIComposer
             onSeparate={startSeparation}
-            onCapture={async () => {
-              if (!stageRef.current) throw new Error("Canvas not ready");
-              return renderDesign(
-                stageRef.current,
-                useEditorStore.getState().document,
-              );
-            }}
             onApply={async (src, separate) => {
               const image = new window.Image();
               image.src = src;
               await image.decode();
               const state = useEditorStore.getState();
-              const scale = Math.min(
-                state.document.canvas.width / image.width,
-                state.document.canvas.height / image.height,
-              );
               const layer = makeLayer("image", {
                 src,
                 name: "AI 완성 이미지",
-                x: (state.document.canvas.width - image.width * scale) / 2,
-                y: (state.document.canvas.height - image.height * scale) / 2,
-                width: image.width * scale,
-                height: image.height * scale,
+                ...fitImage(image.width, image.height, state.document.canvas),
               }) as ImageLayer;
               state.add(layer);
               if (separate)
@@ -326,6 +309,7 @@ export default function Editor() {
         </div>
         <PropertiesPanel onSeparate={startSeparation} />
       </div>
+      {connections && <ConnectionsDialog onClose={() => setConnections(false)} />}
       {separateLayer && (
         <ImageSeparationDialog
           layer={separateLayer}

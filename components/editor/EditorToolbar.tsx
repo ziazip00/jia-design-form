@@ -3,8 +3,10 @@ import { useEditorStore } from "@/store/editorStore";
 import CanvasSizeSelector from "./CanvasSizeSelector";
 export default function EditorToolbar({
   onExport,
+  onConnections,
 }: {
   onExport: (format: "png" | "jpeg") => void;
+  onConnections: () => void;
 }) {
   const s = useEditorStore();
   return (
@@ -39,6 +41,7 @@ export default function EditorToolbar({
         </button>
         <span className="divider" />
         <CanvasSizeSelector />
+        <button onClick={onConnections}>MCP 연결</button>
         <details className="export-menu">
           <summary className="primary">
             <Download size={16} /> Export

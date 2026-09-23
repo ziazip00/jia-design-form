@@ -5,11 +5,9 @@ type Result = { id: string; src: string; size: string };
 export default function AIComposer({
   onSeparate,
   onApply,
-  onCapture,
 }: {
   onSeparate: () => void;
   onApply: (src: string, separate: boolean) => Promise<void>;
-  onCapture: () => Promise<string>;
 }) {
   const file = useRef<HTMLInputElement>(null),
     pending = useRef(false),
@@ -75,6 +73,7 @@ export default function AIComposer({
       setReference(data);
       setMode("edit");
       setStatus("바꾸고 싶은 내용을 입력하세요.");
+      return data;
     } catch (e) {
       setError(e instanceof Error ? e.message : "사진을 읽지 못했습니다.");
     } finally {
@@ -91,7 +90,8 @@ export default function AIComposer({
     }
     const url = URL.createObjectURL(f);
     try {
-      await prepare(url);
+      const data = await prepare(url);
+      if (data) await onApply(data, false);
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -99,7 +99,7 @@ export default function AIComposer({
   async function submit() {
     if (pending.current || preparing || !prompt.trim()) return;
     if (mode === "edit" && !reference) {
-      setError("사진을 첨부하거나 현재 캔버스를 가져오세요.");
+      setError("사진을 첨부하거나 선택 사진을 가져오세요.");
       return;
     }
     pending.current = true;
@@ -242,18 +242,6 @@ export default function AIComposer({
         <div className="composer-actions">
           <button type="button" onClick={() => file.current?.click()}>
             ＋ 사진 첨부
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await prepare(await onCapture());
-              } catch {
-                setError("캔버스의 이미지 로딩이 끝난 뒤 다시 시도하세요.");
-              }
-            }}
-          >
-            현재 캔버스 가져오기
           </button>
           {selected?.type === "image" && (
             <button type="button" onClick={() => void prepare(selected.src)}>

@@ -16,12 +16,12 @@ import {
   canvas,
   prepareImage,
   recognizeText,
-  recognizeSubject,
   renderSeparation,
   separationLayers,
   type TextRegion,
   type SeparationResult,
 } from "@/lib/imageSeparation";
+import { removeImageText } from "@/lib/removeImageText";
 
 export default function ImageSeparationDialog({
   layer,
@@ -49,7 +49,7 @@ export default function ImageSeparationDialog({
     [hasMask, setHasMask] = useState(false);
   const [tool, setTool] = useState<"view" | "add" | "erase">("view"),
     [brush, setBrush] = useState(30);
-  const [view, setView] = useState<"regions" | "original" | "result">(
+  const [view, setView] = useState<"regions" | "original" | "result" | "cutout">(
     "regions",
   );
   const [fill, setFill] = useState<"surround" | "solid" | "transparent">(
@@ -71,7 +71,7 @@ export default function ImageSeparationDialog({
         source.current = c;
         mask.current = canvas(c.width, c.height);
         setLoaded(true);
-        setStatus("글자 추출 또는 피사체 자동 선택으로 시작하세요.");
+        setStatus("글자 추출 또는 직접 오려내기로 시작하세요.");
       })
       .catch((e) => {
         if (active) setStatus(e.message);
@@ -98,6 +98,11 @@ export default function ImageSeparationDialog({
       i.src = result.preview;
     } else {
       ctx.drawImage(image, 0, 0);
+      if (view === "cutout" && mask.current) {
+        ctx.globalCompositeOperation = "destination-in";
+        ctx.drawImage(mask.current, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+      }
       if (view === "regions") {
         if (mask.current && hasMask) {
           const tint = canvas(image.width, image.height),
@@ -261,6 +266,7 @@ export default function ImageSeparationDialog({
               [
                 ["original", "원본"],
                 ["regions", "선택 영역"],
+                ["cutout", "오려낼 부분"],
                 ["result", "분리 결과"],
               ] as const
             ).map(([v, label]) => (
@@ -337,8 +343,17 @@ export default function ImageSeparationDialog({
                 <ScanText size={17} />
                 {texts.length
                   ? "다시 인식 (수정 내용 초기화)"
-                  : "한글·영문 글자 인식"}
+                  : "글자 추출 · 한글·영문"}
               </button>
+              <button className="separation-action" onClick={() => void run(async (signal) => {
+                setStatus("모든 글자를 제거하고 배경을 복원하고 있습니다…");
+                const src = await removeImageText(source.current!, signal);
+                if (signal.aborted) return;
+                setResult({background: src, preview: src, texts: [], width: source.current!.width, height: source.current!.height});
+                setView("result");
+                setStatus("글자 제거 결과를 확인하세요. AI 복원은 글자 외 세부 이미지도 바꿀 수 있습니다. 적용 전 원본과 비교해 주세요.");
+              })}>글자 모두 제거 · AI 배경 복원</button>
+              <p>이 버튼은 이미지를 OpenAI에 보내며 API 사용료가 발생합니다. 결과 확인 후 새 이미지 레이어로 적용합니다.</p>
               <div className="text-region-list">
                 {texts.map((t, i) => (
                   <div key={t.id} className={selected === t.id ? "chosen" : ""}>
@@ -465,26 +480,9 @@ export default function ImageSeparationDialog({
               <h3>2. 피사체 분리</h3>
               <button
                 className="separation-action"
-                onClick={() =>
-                  void run(async (signal) => {
-                    const found = await recognizeSubject(
-                      source.current!,
-                      signal,
-                      setStatus,
-                    );
-                    if (signal.aborted) return;
-                    rememberMask();
-                    mask.current = found;
-                    setHasMask(true);
-                    setMaskVersion((v) => v + 1);
-                    dirty();
-                    setStatus(
-                      "주요 피사체를 선택했습니다. 포함·제외 브러시로 경계를 다듬으세요.",
-                    );
-                  })
-                }
+                onClick={() => { setTool("add"); setView("regions"); setStatus("남길 부분을 포함 브러시로 칠하고 제외 브러시로 다듬으세요."); }}
               >
-                <Scissors size={17} /> 피사체 자동 선택
+                <Scissors size={17} /> 직접 오려내기
               </button>
               <div className="brush-tools">
                 {(
@@ -513,6 +511,7 @@ export default function ImageSeparationDialog({
                     const old = previousMasks.current.pop();
                     if (old) {
                       mask.current!.getContext("2d")!.putImageData(old, 0, 0);
+                      setHasMask(old.data.some((value, index) => index % 4 === 3 && value > 0));
                       setMaskVersion((v) => v + 1);
                       dirty();
                     }
@@ -552,8 +551,7 @@ export default function ImageSeparationDialog({
                 피사체 선택 지우기
               </button>
               <p>
-                여러 피사체가 함께 선택될 수 있습니다. 하나씩 분리하려면
-                나머지를 제외 브러시로 지워 주세요.
+                남길 부분 전체를 칠해 주세요. ‘오려낼 부분’에서 투명 배경으로 확인한 후 결과 미리보기 → 레이어로 적용을 누르세요.
               </p>
             </section>
             <section>
@@ -598,8 +596,7 @@ export default function ImageSeparationDialog({
             {status}
           </p>
           <small>
-            사진은 외부 AI 서버로 전송하지 않습니다. 원본은 숨긴 레이어로
-            보관됩니다.
+            글자 추출·직접 오려내기는 기기에서 처리합니다. AI 글자 제거만 OpenAI로 전송합니다. 원본은 숨긴 레이어로 보관됩니다.
           </small>
         </div>
         <div className="separation-footer-actions">

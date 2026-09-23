@@ -1316,6 +1316,13 @@ h3 {
   font-size: 12px;
   margin-top: 5px;
 }
+.connections-dialog { width:min(720px,92vw); max-height:85vh; overflow:auto; border:1px solid #dbe5ee; border-radius:16px; padding:24px; color:#24394d; }
+.connections-dialog::backdrop { background:#142a4666; }
+.connections-dialog header { display:flex; justify-content:space-between; align-items:center; }
+.connections-dialog section { padding:16px 0; border-top:1px solid #e5ebf2; }
+.connections-dialog p,.connections-dialog li { font-size:13px; line-height:1.7; margin:10px 0; }
+.connections-dialog small { font-size:12px; background:#edf1f5; padding:5px 9px; border-radius:8px; margin-left:10px; }
+.connections-dialog button,.connections-dialog a { display:inline-block; padding:8px 12px; margin:4px; border:1px solid #dbe5ee; border-radius:7px; font-size:13px; }
 .color-field input[type="text"] {
   width: 100%;
   flex: 1;
