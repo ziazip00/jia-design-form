@@ -33,7 +33,7 @@ export default function Editor() {
     const key = (e: KeyboardEvent) => {
       if (
         (e.target as HTMLElement).closest(
-          "input,textarea,select,[contenteditable]",
+          "input,textarea,select,[contenteditable],dialog",
         )
       )
         return;

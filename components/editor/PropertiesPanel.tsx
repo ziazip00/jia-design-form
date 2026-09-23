@@ -1,5 +1,6 @@
 import { SlidersHorizontal, MousePointer2 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
+import FontPicker from "./FontPicker";
 function NumberField({
   label,
   value,
@@ -202,25 +203,11 @@ export default function PropertiesPanel() {
                     onBlur={(e) => patch({ text: e.target.value })}
                   />
                 </label>
-                <label className="field">
-                  Font Family
-                  <select
-                    aria-label="Font Family"
-                    value={l.fontFamily}
-                    onChange={(e) => patch({ fontFamily: e.target.value })}
-                  >
-                    {[
-                      "Arial",
-                      "sans-serif",
-                      "serif",
-                      "Georgia",
-                      "monospace",
-                      "Malgun Gothic",
-                    ].map((f) => (
-                      <option key={f}>{f}</option>
-                    ))}
-                  </select>
-                </label>
+                <FontPicker
+                  key={l.id}
+                  value={l.fontFamily}
+                  onChange={(fontFamily) => s.patch(l.id, { fontFamily })}
+                />
                 <div className="two">
                   <NumberField
                     label="Font Size"
