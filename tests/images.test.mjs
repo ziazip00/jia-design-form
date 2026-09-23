@@ -19,6 +19,59 @@ const input = {
   size: "1024x1024",
   quality: "low",
 };
+const png = (w, h, alpha = 6) => {
+  const bytes = new Uint8Array(33);
+  bytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(16, w);
+  view.setUint32(20, h);
+  bytes[25] = alpha;
+  return "data:image/png;base64," + Buffer.from(bytes).toString("base64");
+};
+test("masked edit sends the selected PNG mask; rejects invalid masks before upstream", async () => {
+  let calls = 0;
+  const opts = {
+    fetcher: async (url, init) => {
+      calls++;
+      assert.equal(url, "https://api.openai.com/v1/images/edits");
+      assert.equal(init.body.get("mask").type, "image/png");
+      assert.equal(init.body.get("mask").size, 33);
+      return Response.json({ data: [{ b64_json: "aGVsbG8=" }] });
+    },
+  };
+  const body = {
+    ...input,
+    mode: "edit",
+    image: png(1024, 1024),
+    mask: png(1024, 1024),
+  };
+  assert.equal(
+    (await images(request(body), { OPENAI_API_KEY: "test" }, opts)).status,
+    200,
+  );
+  for (const mask of [png(512, 512), png(1024, 1024, 2), "bad"])
+    assert.equal(
+      (
+        await images(
+          request({ ...body, mask }),
+          { OPENAI_API_KEY: "test" },
+          opts,
+        )
+      ).status,
+      400,
+    );
+  assert.equal(
+    (
+      await images(
+        request({ ...body, mode: "new" }),
+        { OPENAI_API_KEY: "test" },
+        opts,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(calls, 1);
+});
 test("image endpoint requires identity, same origin, valid input and configured key before calling upstream", async () => {
   let calls = 0;
   const options = {

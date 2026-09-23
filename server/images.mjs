@@ -77,6 +77,14 @@ export async function images(
       n: 1,
       output_format: "png",
     };
+    const maskMatch =
+      typeof body.mask === "string" &&
+      body.mask.match(/^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/);
+    if (
+      body.mask !== undefined &&
+      (!maskMatch || !match || match[1] !== "png" || body.mode !== "edit")
+    )
+      return json({ error: "선택 영역 마스크와 PNG 원본이 필요합니다." }, 400);
     let payload,
       headers = { Authorization: `Bearer ${env.OPENAI_API_KEY}` };
     if (match) {
@@ -89,6 +97,48 @@ export async function images(
         new Blob([raw], { type: `image/${match[1]}` }),
         `reference.${match[1]}`,
       );
+      if (maskMatch) {
+        const maskBytes = Uint8Array.from(atob(maskMatch[1]), (c) =>
+          c.charCodeAt(0),
+        );
+        const pngSize = (bytes) => {
+          if (
+            bytes.length < 33 ||
+            ![137, 80, 78, 71, 13, 10, 26, 10].every((v, i) => bytes[i] === v)
+          )
+            return null;
+          const view = new DataView(
+            bytes.buffer,
+            bytes.byteOffset,
+            bytes.byteLength,
+          );
+          return [view.getUint32(16), view.getUint32(20), bytes[25]];
+        };
+        const a = pngSize(raw),
+          b = pngSize(maskBytes);
+        if (
+          !a ||
+          !b ||
+          a[0] !== b[0] ||
+          a[1] !== b[1] ||
+          ![4, 6].includes(b[2]) ||
+          a[0] < 1 ||
+          a[1] < 1 ||
+          a[0] * a[1] > 4_000_000
+        )
+          return json(
+            {
+              error:
+                "선택 영역 마스크는 원본과 같은 크기의 투명도 포함 PNG여야 합니다.",
+            },
+            400,
+          );
+        payload.set(
+          "mask",
+          new Blob([maskBytes], { type: "image/png" }),
+          "selection-mask.png",
+        );
+      }
     } else {
       headers["Content-Type"] = "application/json";
       payload = JSON.stringify(params);

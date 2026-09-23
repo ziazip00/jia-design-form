@@ -288,7 +288,7 @@ export default function PropertiesPanel({
               <section>
                 <h3>이미지</h3>
                 <button className="separation-action" onClick={onSeparate}>
-                  글자·피사체 레이어 분리
+                  선택 영역 편집
                 </button>
                 <label className="check">
                   <input

@@ -32,11 +32,11 @@ export async function loadImage(src: string) {
     i.src = src;
   });
 }
-export async function prepareImage(layer: ImageLayer) {
+export async function prepareImage(layer: ImageLayer, maxDimension = 1600) {
   const image = await loadImage(layer.src);
   if (image.width * image.height > 40_000_000)
     throw new Error("4천만 화소 이하의 이미지를 사용해 주세요.");
-  const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
   const c = canvas(
     Math.max(1, Math.round(image.width * scale)),
     Math.max(1, Math.round(image.height * scale)),
@@ -99,140 +99,6 @@ export function workerTask<T>(
     };
     worker.postMessage(data);
   });
-}
-function estimateColor(
-  c: HTMLCanvasElement,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) {
-  const data = c.getContext("2d")!.getImageData(x, y, width, height).data;
-  const bins = new Map<string, { count: number; rgb: number[] }>();
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 80) continue;
-    const key = `${data[i] >> 5},${data[i + 1] >> 5},${data[i + 2] >> 5}`;
-    const bin = bins.get(key) || { count: 0, rgb: [0, 0, 0] };
-    bin.count++;
-    for (let k = 0; k < 3; k++) bin.rgb[k] += data[i + k];
-    bins.set(key, bin);
-  }
-  const sorted = [...bins.values()].sort((a, b) => b.count - a.count);
-  const base = sorted[0];
-  if (!base) return "#172f47";
-  const bg = base.rgb.map((v) => v / base.count);
-  const best =
-    sorted
-      .filter((b) => b.count > width * height * 0.025)
-      .sort((a, b) => {
-        const score = (v: typeof a) =>
-          v.rgb.reduce((s, n, k) => s + (n / v.count - bg[k]) ** 2, 0);
-        return score(b) - score(a);
-      })[0] || base;
-  return (
-    "#" +
-    best.rgb
-      .map((v) =>
-        Math.round(v / best.count)
-          .toString(16)
-          .padStart(2, "0"),
-      )
-      .join("")
-  );
-}
-export async function recognizeText(
-  c: HTMLCanvasElement,
-  signal: AbortSignal,
-  progress: (message: string) => void,
-): Promise<TextRegion[]> {
-  const { createWorker, PSM } = await import("tesseract.js");
-  let worker: Awaited<ReturnType<typeof createWorker>> | undefined;
-  let stopped = false;
-  let rejectAbort: (error: Error) => void = () => {};
-  const aborted = new Promise<never>((_, reject) => {
-    rejectAbort = reject;
-  });
-  const abort = () => {
-    stopped = true;
-    if (worker) void worker.terminate();
-    rejectAbort(cancelled());
-  };
-  if (signal.aborted) throw cancelled();
-  signal.addEventListener("abort", abort, { once: true });
-  const timer = setTimeout(() => {
-    stopped = true;
-    if (worker) void worker.terminate();
-    rejectAbort(
-      new Error(
-        "글자 인식 시간이 초과됐습니다. 더 작은 이미지로 다시 시도해 주세요.",
-      ),
-    );
-  }, 120000);
-  try {
-    const work = async () => {
-      worker = await createWorker(["kor", "eng"], 1, {
-        workerPath: "/image-tools/ocr/worker.min.js",
-        corePath: "/image-tools/ocr",
-        langPath: "/image-tools/languages",
-        gzip: false,
-        logger: (m) => {
-          if (!signal.aborted)
-            progress(
-              m.status === "recognizing text"
-                ? `글자를 읽고 있습니다… ${Math.round(m.progress * 100)}%`
-                : "한글·영문 인식 도구를 준비하고 있습니다…",
-            );
-        },
-      });
-      if (signal.aborted || stopped) {
-        await worker.terminate();
-        throw cancelled();
-      }
-      await worker.setParameters({
-        tessedit_pageseg_mode: PSM.SPARSE_TEXT,
-        preserve_interword_spaces: "1",
-      });
-      const { data } = await worker.recognize(
-        c,
-        {},
-        { blocks: true, text: true },
-      );
-      const lines =
-        data.blocks?.flatMap((b) => b.paragraphs.flatMap((p) => p.lines)) || [];
-      return lines
-        .filter((l) => l.text.trim())
-        .slice(0, 80)
-        .map((l) => {
-          const x = Math.max(0, Math.floor(l.bbox.x0)),
-            y = Math.max(0, Math.floor(l.bbox.y0));
-          const width = Math.max(
-            1,
-            Math.min(c.width - x, Math.ceil(l.bbox.x1 - x)),
-          );
-          const height = Math.max(
-            1,
-            Math.min(c.height - y, Math.ceil(l.bbox.y1 - y)),
-          );
-          return {
-            id: crypto.randomUUID(),
-            text: l.text.trim(),
-            x,
-            y,
-            width,
-            height,
-            color: estimateColor(c, x, y, width, height),
-            fontSize: Math.max(6, Math.round(height * 1.15)),
-            confidence: l.confidence,
-            enabled: true,
-          };
-        });
-    };
-    return await Promise.race([work(), aborted]);
-  } finally {
-    clearTimeout(timer);
-    signal.removeEventListener("abort", abort);
-    if (worker) await worker.terminate();
-  }
 }
 export async function recognizeSubject(
   c: HTMLCanvasElement,

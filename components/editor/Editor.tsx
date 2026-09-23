@@ -316,7 +316,7 @@ export default function Editor() {
           onClose={() => setSeparateLayer(null)}
           onDone={() =>
             setMessage(
-              "분리된 레이어를 추가했습니다. 원본은 숨겨 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
+              "편집 결과를 이미지 레이어로 추가했습니다. 원본은 숨겨 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
             )
           }
         />
