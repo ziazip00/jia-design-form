@@ -63,7 +63,11 @@ function ColorField({
     </label>
   );
 }
-export default function PropertiesPanel() {
+export default function PropertiesPanel({
+  onSeparate,
+}: {
+  onSeparate: () => void;
+}) {
   const s = useEditorStore(),
     l = s.document.layers.find((l) => l.id === s.selectedId);
   const patch = (v: Record<string, unknown>) => l && s.patch(l.id, v);
@@ -268,6 +272,9 @@ export default function PropertiesPanel() {
             {l.type === "image" && (
               <section>
                 <h3>이미지</h3>
+                <button className="separation-action" onClick={onSeparate}>
+                  글자·피사체 레이어 분리
+                </button>
                 <label className="check">
                   <input
                     type="checkbox"
@@ -323,6 +330,45 @@ export default function PropertiesPanel() {
                 )}
               </section>
             )}
+            <section>
+              <h3>그림자 효과</h3>
+              <ColorField
+                label="그림자 색"
+                value={l.shadowColor || "#172f47"}
+                onChange={(shadowColor) => patch({ shadowColor })}
+              />
+              <div className="two">
+                <NumberField
+                  label="그림자 농도"
+                  value={l.shadowOpacity ?? 0}
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  onChange={(shadowOpacity) => patch({ shadowOpacity })}
+                />
+                <NumberField
+                  label="그림자 흐림"
+                  value={l.shadowBlur ?? 12}
+                  min={0}
+                  max={100}
+                  onChange={(shadowBlur) => patch({ shadowBlur })}
+                />
+                <NumberField
+                  label="그림자 X"
+                  value={l.shadowOffsetX ?? 0}
+                  min={-200}
+                  max={200}
+                  onChange={(shadowOffsetX) => patch({ shadowOffsetX })}
+                />
+                <NumberField
+                  label="그림자 Y"
+                  value={l.shadowOffsetY ?? 8}
+                  min={-200}
+                  max={200}
+                  onChange={(shadowOffsetY) => patch({ shadowOffsetY })}
+                />
+              </div>
+            </section>
           </fieldset>
         </>
       )}

@@ -14,6 +14,7 @@ import {
   Circle,
   Star,
   Heart,
+  Scissors,
 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { makeLayer, blankDocument } from "@/lib/designParser";
@@ -23,11 +24,15 @@ import EditorToolbar from "./EditorToolbar";
 import LayerPanel from "./LayerPanel";
 import PropertiesPanel from "./PropertiesPanel";
 import PromptBar from "./PromptBar";
+import ImageSeparationDialog from "./ImageSeparationDialog";
+import type { ImageLayer } from "@/types/design";
 export default function Editor() {
   const stageRef = useRef<Konva.Stage>(null),
     fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState("Design"),
     [message, setMessage] = useState("");
+  const [separateLayer, setSeparateLayer] = useState<ImageLayer | null>(null);
+  const splitUpload = useRef(false);
   const s = useEditorStore();
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -72,7 +77,7 @@ export default function Editor() {
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, []);
-  async function upload(file?: File) {
+  async function upload(file?: File, separate = false) {
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       setMessage("PNG, JPG, WEBP 이미지를 선택해 주세요.");
@@ -100,17 +105,35 @@ export default function Editor() {
         (s.document.canvas.width * 0.7) / image.width,
         (s.document.canvas.height * 0.7) / image.height,
       );
-      s.add(
-        makeLayer("image", {
-          name: file.name,
-          src,
-          width: Math.round(image.width * scale),
-          height: Math.round(image.height * scale),
-        }),
-      );
+      const added = makeLayer("image", {
+        name: file.name,
+        src,
+        width: Math.round(image.width * scale),
+        height: Math.round(image.height * scale),
+      }) as ImageLayer;
+      useEditorStore.getState().add(added);
+      if (separate)
+        setSeparateLayer(
+          useEditorStore
+            .getState()
+            .document.layers.find((l) => l.id === added.id) as ImageLayer,
+        );
       setMessage("이미지를 추가했습니다.");
     } catch {
       setMessage("이미지를 읽을 수 없습니다. 다른 파일을 선택해 주세요.");
+    }
+  }
+  function startSeparation() {
+    const selected = s.document.layers.find((l) => l.id === s.selectedId);
+    if (selected?.type === "image") {
+      if (selected.locked) {
+        setMessage("이미지 레이어의 잠금을 해제한 뒤 분리해 주세요.");
+        return;
+      }
+      setSeparateLayer(selected);
+    } else {
+      splitUpload.current = true;
+      fileRef.current?.click();
     }
   }
   return (
@@ -145,7 +168,10 @@ export default function Editor() {
               onClick={() => {
                 setTab(name);
                 if (name === "Text") s.add(makeLayer("text"));
-                if (name === "Image") fileRef.current?.click();
+                if (name === "Image") {
+                  splitUpload.current = false;
+                  fileRef.current?.click();
+                }
               }}
             >
               <Icon size={21} />
@@ -196,9 +222,18 @@ export default function Editor() {
                 </button>
                 <button
                   className="upload-button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => {
+                    splitUpload.current = false;
+                    fileRef.current?.click();
+                  }}
                 >
                   <Upload size={18} /> 이미지 업로드
+                </button>
+                <button
+                  className="upload-button separation-entry"
+                  onClick={startSeparation}
+                >
+                  <Scissors size={18} /> 이미지 레이어 분리
                 </button>
                 <div className="asset-grid">
                   {(["rectangle", "rounded", "circle"] as const).map(
@@ -233,7 +268,8 @@ export default function Editor() {
               type="file"
               accept="image/png,image/jpeg,image/webp"
               onChange={(e) => {
-                void upload(e.target.files?.[0]);
+                void upload(e.target.files?.[0], splitUpload.current);
+                splitUpload.current = false;
                 e.target.value = "";
               }}
             />
@@ -250,10 +286,24 @@ export default function Editor() {
         </aside>
         <div className="center">
           <CanvasEditor stageRef={stageRef} />
-          <PromptBar />
+          <PromptBar
+            onSeparate={startSeparation}
+            onUpload={(file) => void upload(file, true)}
+          />
         </div>
-        <PropertiesPanel />
+        <PropertiesPanel onSeparate={startSeparation} />
       </div>
+      {separateLayer && (
+        <ImageSeparationDialog
+          layer={separateLayer}
+          onClose={() => setSeparateLayer(null)}
+          onDone={() =>
+            setMessage(
+              "분리된 레이어를 추가했습니다. 원본은 숨겨 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
+            )
+          }
+        />
+      )}
       {message && (
         <div role="status" className="toast" onClick={() => setMessage("")}>
           {message}

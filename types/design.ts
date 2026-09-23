@@ -11,6 +11,11 @@ export interface BaseLayer {
   visible: boolean;
   locked: boolean;
   zIndex: number;
+  shadowColor?: string;
+  shadowOpacity?: number;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
 }
 export interface TextLayer extends BaseLayer {
   type: "text";

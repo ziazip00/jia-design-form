@@ -864,3 +864,322 @@ h3 {
   border-top: 1px solid #e5ebf1;
   padding-top: 12px;
 }
+.generation-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #647f97;
+}
+.generation-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.generation-options select {
+  width: auto;
+  padding: 5px;
+  font-size: 11px;
+}
+.generation-options button {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+.separation-entry {
+  color: #256eac;
+  background: #edf5ff;
+  border-color: #c7dcf0;
+}
+.image-workflow-actions {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.image-workflow-actions .upload-button {
+  margin: 0;
+  flex: 1;
+}
+.image-workflow .prompt-label strong {
+  font-size: 14px;
+}
+.image-workflow .prompt-bottom p,
+.image-workflow .prompt-bottom button {
+  font-size: 12px;
+}
+.separation-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(1180px, 96vw);
+  height: min(900px, 94dvh);
+  max-height: 94dvh;
+  border: 1px solid #d4dfe9;
+  border-radius: 14px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 24px 90px #16324b44;
+  overflow: hidden;
+}
+.separation-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.separation-dialog::backdrop {
+  background: #12263b70;
+}
+.separation-dialog header {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.separation-dialog header h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 20px;
+}
+.separation-dialog header p {
+  font-size: 14px;
+  margin-top: 8px;
+  color: #65788b;
+}
+.separation-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.separation-preview {
+  background: #f2f5f8;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  min-height: 0;
+  min-width: 0;
+}
+.separation-tabs {
+  display: flex;
+  gap: 5px;
+  align-self: center;
+  background: white;
+  padding: 4px;
+  border: 1px solid #dce5ed;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.separation-tabs button {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+.separation-dialog button[aria-pressed="true"] {
+  background: #e5f1ff;
+  color: #216aab;
+}
+.separation-artboard {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.separation-artboard canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  touch-action: none;
+  background-color: #fff;
+  background-image: conic-gradient(
+    #e7ebef 25%,
+    white 0 50%,
+    #e7ebef 0 75%,
+    white 0
+  );
+  background-size: 20px 20px;
+  box-shadow: 0 2px 18px #263f5420;
+}
+.separation-caption {
+  font-size: 12px;
+  color: #5c7286;
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+.separation-controls {
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+}
+.separation-controls fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.separation-controls section {
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.separation-controls h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.separation-controls p {
+  font-size: 12px;
+  color: #6b7e90;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.separation-action {
+  width: 100%;
+  border: 1px solid #bcd5ed;
+  background: #f2f8ff;
+  color: #246da9;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.text-region-list {
+  max-height: 170px;
+  overflow: auto;
+}
+.text-region-list > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 5px;
+}
+.text-region-list > div.chosen {
+  background: #eaf3ff;
+}
+.text-region-list button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  text-align: left;
+  flex: 1;
+  font-size: 14px;
+}
+.text-region-list span {
+  font-size: 12px;
+  color: #7a8b9b;
+}
+.region-fields {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #fafcff;
+}
+.region-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #576e83;
+}
+.region-fields textarea {
+  font-size: 14px;
+  min-height: 66px;
+  resize: vertical;
+}
+.region-fields input {
+  font-size: 14px;
+  height: 36px;
+}
+.brush-tools {
+  display: flex;
+  gap: 3px;
+  margin: 4px 0 12px;
+  flex-wrap: wrap;
+}
+.brush-tools button {
+  border: 1px solid #dfe6ed;
+  font-size: 13px;
+}
+.brush-size {
+  display: block;
+  font-size: 13px;
+  color: #526b81;
+}
+.brush-size input {
+  padding: 5px 0;
+  accent-color: #3079c8;
+}
+.fill-color {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+.fill-color input {
+  width: 65px;
+  height: 35px;
+}
+.separation-dialog footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.separation-dialog footer p {
+  font-size: 14px;
+  color: #356e9d;
+  line-height: 1.5;
+}
+.separation-dialog footer small {
+  display: block;
+  font-size: 12px;
+  color: #7c8d9d;
+  margin-top: 5px;
+}
+.separation-footer-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 800px) {
+  .separation-body {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+  .separation-preview {
+    min-height: 340px;
+  }
+  .separation-controls {
+    overflow: visible;
+    border-left: 0;
+  }
+  .separation-artboard canvas {
+    max-height: 280px;
+  }
+  .separation-dialog footer {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .separation-dialog header {
+    padding: 14px;
+  }
+  .separation-dialog header h2 {
+    font-size: 17px;
+  }
+  .separation-footer-actions {
+    justify-content: flex-end;
+  }
+}

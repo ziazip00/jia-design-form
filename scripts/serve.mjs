@@ -1,12 +1,16 @@
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { generate } from "../server/generate.mjs";
+import { Readable } from "node:stream";
 
 const root = path.resolve("out");
 const port = Number(process.env.PORT || 3000);
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".wasm": "application/wasm",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json",
   ".txt": "text/plain; charset=utf-8",
@@ -22,6 +26,19 @@ createServer(async (req, res) => {
     const pathname = decodeURIComponent(
       new URL(req.url, "http://localhost").pathname,
     );
+    if (pathname === "/api/generate") {
+      const request = new Request(`http://127.0.0.1:${port}${req.url}`, {
+        method: req.method,
+        headers: req.headers,
+        ...(req.method === "POST"
+          ? { body: Readable.toWeb(req), duplex: "half" }
+          : {}),
+      });
+      const response = await generate(request, process.env, { local: true });
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      res.end(Buffer.from(await response.arrayBuffer()));
+      return;
+    }
     let target = path.resolve(root, "." + pathname);
     if (target !== root && !target.startsWith(root + path.sep)) {
       res.writeHead(403).end();

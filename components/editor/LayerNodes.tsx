@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { Text, Rect, Ellipse, Image as KImage, Path } from "react-konva";
 import type { DesignLayer, ImageLayer } from "@/types/design";
+function shadow(l: DesignLayer) {
+  return {
+    shadowColor: l.shadowColor || "#172f47",
+    shadowOpacity: l.shadowOpacity ?? 0,
+    shadowBlur: l.shadowBlur ?? 12,
+    shadowOffsetX: l.shadowOffsetX ?? 0,
+    shadowOffsetY: l.shadowOffsetY ?? 8,
+    shadowEnabled: (l.shadowOpacity ?? 0) > 0,
+  };
+}
 export function ImageNode({ layer }: { layer: ImageLayer }) {
   const [image, setImage] = useState<HTMLImageElement>();
   useEffect(() => {
@@ -16,6 +26,7 @@ export function ImageNode({ layer }: { layer: ImageLayer }) {
   }, [layer.src]);
   return (
     <KImage
+      {...shadow(layer)}
       image={image}
       width={layer.width}
       height={layer.height}
@@ -31,6 +42,7 @@ export function LayerNode({ layer: l }: { layer: DesignLayer }) {
     case "text":
       return (
         <Text
+          {...shadow(l)}
           text={l.text}
           width={l.width}
           height={l.height}
@@ -48,6 +60,7 @@ export function LayerNode({ layer: l }: { layer: DesignLayer }) {
     case "shape":
       return l.shape === "circle" ? (
         <Ellipse
+          {...shadow(l)}
           x={l.width / 2}
           y={l.height / 2}
           radiusX={l.width / 2}
@@ -58,6 +71,7 @@ export function LayerNode({ layer: l }: { layer: DesignLayer }) {
         />
       ) : (
         <Rect
+          {...shadow(l)}
           width={l.width}
           height={l.height}
           fill={l.fill}
@@ -69,6 +83,7 @@ export function LayerNode({ layer: l }: { layer: DesignLayer }) {
     case "icon":
       return (
         <Path
+          {...shadow(l)}
           data={
             l.icon === "heart"
               ? "M50 90 L12 52 C-18 14 30 -5 50 24 C70 -5 118 14 88 52 Z"

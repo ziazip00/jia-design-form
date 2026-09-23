@@ -4,3 +4,7 @@ node_modules/
 .test-build/
 out/
 .sites-runtime/
+dist/
+.env
+.env.*
+!.env.example
