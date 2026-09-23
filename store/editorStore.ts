@@ -1,0 +1,109 @@
+import { create } from "zustand";
+import type { DesignDocument, DesignLayer } from "../types/design";
+import { blankDocument } from "../lib/designParser";
+import { remember, normalize } from "../lib/history";
+interface EditorState {
+  document: DesignDocument;
+  selectedId: string | null;
+  past: DesignDocument[];
+  future: DesignDocument[];
+  select: (id: string | null) => void;
+  commit: (doc: DesignDocument) => void;
+  patch: (id: string, patch: Record<string, unknown>) => void;
+  add: (layer: DesignLayer) => void;
+  remove: () => void;
+  duplicate: () => void;
+  reorder: (id: string, index: number) => void;
+  undo: () => void;
+  redo: () => void;
+}
+export const useEditorStore = create<EditorState>((set, get) => ({
+  document: blankDocument(),
+  selectedId: null,
+  past: [],
+  future: [],
+  select: (selectedId) => set({ selectedId }),
+  commit: (doc) => {
+    const s = get();
+    const next = normalize(doc);
+    if (JSON.stringify(next) === JSON.stringify(s.document)) return;
+    set({
+      document: next,
+      past: remember(s.past, s.document),
+      future: [],
+      selectedId: next.layers.some((l) => l.id === s.selectedId)
+        ? s.selectedId
+        : null,
+    });
+  },
+  patch: (id, patch) => {
+    const s = get();
+    const old = s.document.layers.find((l) => l.id === id);
+    if (
+      !old ||
+      (old.locked &&
+        Object.keys(patch).some((k) => !["locked", "visible"].includes(k)))
+    )
+      return;
+    s.commit({
+      ...s.document,
+      layers: s.document.layers.map((l) =>
+        l.id === id ? ({ ...l, ...patch } as DesignLayer) : l,
+      ),
+    });
+  },
+  add: (layer) => {
+    const s = get();
+    s.commit({ ...s.document, layers: [...s.document.layers, layer] });
+    set({ selectedId: layer.id });
+  },
+  remove: () => {
+    const s = get();
+    if (s.document.layers.find((l) => l.id === s.selectedId)?.locked) return;
+    s.commit({
+      ...s.document,
+      layers: s.document.layers.filter((l) => l.id !== s.selectedId),
+    });
+  },
+  duplicate: () => {
+    const s = get(),
+      l = s.document.layers.find((l) => l.id === s.selectedId);
+    if (l && !l.locked)
+      s.add({
+        ...l,
+        id: crypto.randomUUID(),
+        name: l.name + " 복사",
+        x: l.x + 24,
+        y: l.y + 24,
+      });
+  },
+  reorder: (id, index) => {
+    const s = get(),
+      layers = [...s.document.layers],
+      from = layers.findIndex((l) => l.id === id);
+    if (from < 0 || layers[from].locked) return;
+    const [l] = layers.splice(from, 1);
+    layers.splice(Math.max(0, Math.min(index, layers.length)), 0, l);
+    s.commit({ ...s.document, layers });
+  },
+  undo: () => {
+    const s = get();
+    if (!s.past.length) return;
+    set({
+      document: s.past.at(-1)!,
+      past: s.past.slice(0, -1),
+      future: [s.document, ...s.future],
+      selectedId: null,
+    });
+  },
+  redo: () => {
+    const s = get();
+    if (!s.future.length) return;
+    set({
+      document: s.future[0],
+      past: remember(s.past, s.document),
+      future: s.future.slice(1),
+      selectedId: null,
+    });
+  },
+}));
