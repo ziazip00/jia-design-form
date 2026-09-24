@@ -1,4 +1,32 @@
 export type Point = { x: number; y: number };
+export function apiMaskPixels(selection: Uint8ClampedArray) {
+  const mask = new Uint8ClampedArray(selection.length);
+  for (let i = 0; i < mask.length; i += 4) {
+    mask[i] = mask[i + 1] = mask[i + 2] = 255;
+    mask[i + 3] = selection[i + 3] >= 128 ? 0 : 255;
+  }
+  return mask;
+}
+export function imagePoint(
+  clientX: number,
+  clientY: number,
+  rect: { left: number; top: number; width: number; height: number },
+  width: number,
+  height: number,
+): Point {
+  if (rect.width <= 0 || rect.height <= 0)
+    throw new Error("이미지 표시 크기가 유효하지 않습니다.");
+  return {
+    x: Math.max(
+      0,
+      Math.min(width, ((clientX - rect.left) * width) / rect.width),
+    ),
+    y: Math.max(
+      0,
+      Math.min(height, ((clientY - rect.top) * height) / rect.height),
+    ),
+  };
+}
 export function polygonArea(points: Point[]) {
   return (
     Math.abs(

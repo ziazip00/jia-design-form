@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 import type { ImageLayer } from "@/types/design";
 import { useEditorStore } from "@/store/editorStore";
-import { makeLayer } from "@/lib/designParser";
+import { applyImageResult } from "@/lib/applyImageResult";
 import { prepareImage, loadImage } from "@/lib/imageSeparation";
 import { inpaintSelection, selectionMask } from "@/lib/inpaintSelection";
-import type { Point } from "@/lib/regionSelection";
+import { imagePoint, type Point } from "@/lib/regionSelection";
 
 type Selection = { points: Point[]; closed: boolean };
 const empty = (): Selection => ({ points: [], closed: false });
@@ -48,6 +48,8 @@ export default function ImageSeparationDialog({
   const [result, setResult] = useState<string | null>(null),
     controller = useRef<AbortController | null>(null),
     running = useRef(false);
+  const expectedLayer = useRef(layer),
+    backupId = useRef(crypto.randomUUID());
   const change = (next: Selection) => {
     selectionRef.current = next;
     setSelection(next);
@@ -134,22 +136,13 @@ export default function ImageSeparationDialog({
   }, [loaded, selection, confirmed, view, result]);
   function point(e: React.PointerEvent<HTMLCanvasElement>): Point {
     const r = e.currentTarget.getBoundingClientRect();
-    return {
-      x: Math.max(
-        0,
-        Math.min(
-          e.currentTarget.width,
-          ((e.clientX - r.left) * e.currentTarget.width) / r.width,
-        ),
-      ),
-      y: Math.max(
-        0,
-        Math.min(
-          e.currentTarget.height,
-          ((e.clientY - r.top) * e.currentTarget.height) / r.height,
-        ),
-      ),
-    };
+    return imagePoint(
+      e.clientX,
+      e.clientY,
+      r,
+      e.currentTarget.width,
+      e.currentTarget.height,
+    );
   }
   function reset() {
     remember();
@@ -190,7 +183,7 @@ export default function ImageSeparationDialog({
     setResult(null);
     const abort = new AbortController();
     controller.current = abort;
-    setStatus("선택 영역을 삭제하고 주변 배경으로 복원하고 있습니다…");
+    setStatus("이미 생성 중입니다. 결과를 기다려 주세요.");
     try {
       const output = await inpaintSelection(
         source.current,
@@ -198,18 +191,32 @@ export default function ImageSeparationDialog({
         abort.signal,
       );
       if (abort.signal.aborted) return;
+      const state = useEditorStore.getState();
+      state.commit(
+        applyImageResult(
+          state.document,
+          expectedLayer.current,
+          output,
+          backupId.current,
+        ),
+      );
+      expectedLayer.current = useEditorStore
+        .getState()
+        .document.layers.find((l) => l.id === layer.id) as ImageLayer;
+      state.select(layer.id);
       setResult(output);
       setView("result");
-      setStatus(
-        "자동 자리 채우기 완료. 원본과 비교한 뒤 이미지 레이어로 적용하세요.",
-      );
+      setStatus("선택 영역이 삭제되고 배경이 복원되었습니다.");
+      onDone();
     } catch (e) {
+      console.error("[inpainting] 자동 자리 채우기에 실패했습니다.", {
+        message: e instanceof Error ? e.message : String(e),
+        diagnostic: (e as { diagnostic?: unknown })?.diagnostic,
+      });
       setStatus(
         abort.signal.aborted
           ? "요청을 취소했습니다. 이미 처리 중인 API 요청은 비용이 발생할 수 있습니다."
-          : e instanceof Error
-            ? e.message
-            : "자동 자리 채우기 실패",
+          : `자동 자리 채우기에 실패했습니다. ${e instanceof Error ? e.message : "알 수 없는 오류입니다."}`,
       );
     } finally {
       running.current = false;
@@ -217,46 +224,24 @@ export default function ImageSeparationDialog({
       controller.current = null;
     }
   }
-  function apply() {
-    if (!result || busy) return;
-    const s = useEditorStore.getState(),
-      current = s.document.layers.find((l) => l.id === layer.id);
-    if (!current || JSON.stringify(current) !== JSON.stringify(layer)) {
-      setStatus("원본이 변경됐습니다. 창을 닫고 다시 편집하세요.");
-      return;
-    }
-    const restored = makeLayer("image", {
-      ...layer,
-      id: crypto.randomUUID(),
-      name: layer.name + " · 영역 삭제·복원",
-      src: result,
-      flipX: false,
-      flipY: false,
-      locked: false,
-    });
-    const layers = [...s.document.layers],
-      i = layers.findIndex((l) => l.id === layer.id);
-    layers.splice(
-      i,
-      1,
-      {
-        ...layer,
-        name: layer.name + " · 원본 보관",
-        visible: false,
-        locked: true,
-      },
-      restored,
-    );
-    s.commit({ ...s.document, layers });
-    s.select(restored.id);
-    onDone();
-    onClose();
-  }
   return (
     <dialog
       ref={dialog}
       className="separation-dialog"
       aria-labelledby="separation-title"
+      onKeyDown={(e) => {
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.key.toLowerCase() === "z" &&
+          !busy &&
+          result
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          useEditorStore.getState().undo();
+          onClose();
+        }
+      }}
       onCancel={(e) => {
         e.preventDefault();
         if (!busy && selection.points.length) reset();
@@ -511,7 +496,7 @@ export default function ImageSeparationDialog({
             {status}
           </p>
           <small>
-            원본은 숨긴 레이어로 보관합니다. 적용 후 Ctrl+Z로 되돌릴 수
+            결과는 캔버스에 자동 적용됩니다. 원본은 보관하며 Ctrl+Z로 되돌릴 수
             있습니다.
           </small>
         </div>
@@ -521,8 +506,8 @@ export default function ImageSeparationDialog({
               처리 취소
             </button>
           ) : (
-            <button className="primary" disabled={!result} onClick={apply}>
-              <Layers size={17} /> 이미지 레이어로 적용
+            <button className="primary" disabled={!result} onClick={close}>
+              <Layers size={17} /> 적용 완료 · 닫기
             </button>
           )}
         </div>

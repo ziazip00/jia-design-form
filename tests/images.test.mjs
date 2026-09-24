@@ -19,6 +19,108 @@ const input = {
   size: "1024x1024",
   quality: "low",
 };
+test("expired invocation cannot permanently block later requests or unlock a newer lease", async () => {
+  let clock = 0,
+    releaseFirst,
+    releaseSecond;
+  const headers = { "oai-authenticated-user-id": "lease-test" };
+  const first = images(
+    request(input, headers),
+    { OPENAI_API_KEY: "test" },
+    {
+      now: () => clock,
+      fetcher: () =>
+        new Promise((resolve) => {
+          releaseFirst = resolve;
+        }),
+    },
+  );
+  while (!releaseFirst) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(
+    (
+      await images(
+        request(input, headers),
+        { OPENAI_API_KEY: "test" },
+        { now: () => clock },
+      )
+    ).status,
+    429,
+  );
+  clock = 186000;
+  const second = images(
+    request(input, headers),
+    { OPENAI_API_KEY: "test" },
+    {
+      now: () => clock,
+      fetcher: () =>
+        new Promise((resolve) => {
+          releaseSecond = resolve;
+        }),
+    },
+  );
+  while (!releaseSecond) await new Promise((resolve) => setImmediate(resolve));
+  releaseFirst(Response.json({ data: [{ b64_json: "aGVsbG8=" }] }));
+  await first;
+  assert.equal(
+    (
+      await images(
+        request(input, headers),
+        { OPENAI_API_KEY: "test" },
+        { now: () => clock },
+      )
+    ).status,
+    429,
+  );
+  releaseSecond(Response.json({ data: [{ b64_json: "aGVsbG8=" }] }));
+  await second;
+  assert.equal(
+    (
+      await images(
+        request(input, headers),
+        { OPENAI_API_KEY: "test" },
+        {
+          now: () => clock,
+          fetcher: async () =>
+            Response.json({ data: [{ b64_json: "aGVsbG8=" }] }),
+        },
+      )
+    ).status,
+    200,
+  );
+});
+test("client cancellation aborts upstream and releases the generation lock", async () => {
+  const controller = new AbortController();
+  let started;
+  const req = new Request(
+    request(input, { "oai-authenticated-user-id": "abort-test" }),
+    { signal: controller.signal },
+  );
+  const pending = images(
+    req,
+    { OPENAI_API_KEY: "test" },
+    {
+      fetcher: async (url, init) =>
+        new Promise((resolve, reject) => {
+          started = true;
+          init.signal.addEventListener("abort", () =>
+            reject(init.signal.reason),
+          );
+        }),
+    },
+  );
+  while (!started) await new Promise((resolve) => setImmediate(resolve));
+  controller.abort();
+  const response = await pending;
+  assert.equal((await response.json()).diagnostic.code, "client_aborted");
+  const next = await images(
+    request(input, { "oai-authenticated-user-id": "abort-test" }),
+    { OPENAI_API_KEY: "test" },
+    {
+      fetcher: async () => Response.json({ data: [{ b64_json: "aGVsbG8=" }] }),
+    },
+  );
+  assert.equal(next.status, 200);
+});
 const png = (w, h, alpha = 6) => {
   const bytes = new Uint8Array(33);
   bytes.set([137, 80, 78, 71, 13, 10, 26, 10]);

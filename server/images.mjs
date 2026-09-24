@@ -1,10 +1,19 @@
-const active = new Set();
+// A canceled Worker invocation may never run finally. Never keep an unbounded lock.
+const active = new Map();
+const IMAGE_TIMEOUT_MS = 180000;
+const IMAGE_LEASE_MS = IMAGE_TIMEOUT_MS + 5000;
+const IMAGE_BODY_LIMIT = 16_000_000;
 const json = (data, status = 200) =>
   Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 export async function images(
   request,
   env,
-  { local = false, fetcher = fetch } = {},
+  {
+    local = false,
+    fetcher = fetch,
+    now = Date.now,
+    timeoutMs = IMAGE_TIMEOUT_MS,
+  } = {},
 ) {
   const user = request.headers.get("oai-authenticated-user-id");
   if (!local && !user) return json({ error: "로그인 후 이용해 주세요." }, 401);
@@ -17,12 +26,39 @@ export async function images(
   if (!env.OPENAI_API_KEY)
     return json({ error: "이미지 생성 연결을 준비 중입니다." }, 503);
   const id = user || "local";
-  if (active.has(id))
-    return json({ error: "이미 생성 중입니다. 결과를 기다려 주세요." }, 429);
-  active.add(id);
-  let timer;
+  const currentTime = now();
+  for (const [key, lease] of active)
+    if (lease.expiresAt <= currentTime) active.delete(key);
+  const previous = active.get(id);
+  if (previous)
+    return json(
+      {
+        error: "이미 생성 중입니다. 결과를 기다려 주세요.",
+        code: "image_request_busy",
+        retryAfter: Math.ceil((previous.expiresAt - currentTime) / 1000),
+      },
+      429,
+    );
+  const lease = {
+    expiresAt: currentTime + IMAGE_LEASE_MS,
+    token: crypto.randomUUID(),
+  };
+  active.set(id, lease);
+  const traceId = crypto.randomUUID(),
+    controller = new AbortController();
+  const cancel = () => controller.abort(request.signal.reason);
+  request.signal.addEventListener("abort", cancel, { once: true });
+  if (request.signal.aborted) cancel();
+  const timer = setTimeout(
+    () =>
+      controller.abort(
+        new DOMException("Image request timed out", "TimeoutError"),
+      ),
+    timeoutMs,
+  );
+  const diagnostic = (stage, details = {}) => ({ traceId, stage, ...details });
   try {
-    if (Number(request.headers.get("content-length")) > 6_000_000)
+    if (Number(request.headers.get("content-length")) > IMAGE_BODY_LIMIT)
       return json({ error: "사진 용량을 줄여 주세요." }, 413);
     const reader = request.body?.getReader();
     if (!reader) return json({ error: "요청이 비어 있습니다." }, 400);
@@ -32,7 +68,7 @@ export async function images(
       const { value, done } = await reader.read();
       if (done) break;
       length += value.length;
-      if (length > 6_000_000) {
+      if (length > IMAGE_BODY_LIMIT) {
         await reader.cancel();
         return json({ error: "사진 용량을 줄여 주세요." }, 413);
       }
@@ -124,7 +160,7 @@ export async function images(
           ![4, 6].includes(b[2]) ||
           a[0] < 1 ||
           a[1] < 1 ||
-          a[0] * a[1] > 4_000_000
+          a[0] * a[1] > 40_000_000
         )
           return json(
             {
@@ -143,13 +179,25 @@ export async function images(
       headers["Content-Type"] = "application/json";
       payload = JSON.stringify(params);
     }
-    const controller = new AbortController();
-    timer = setTimeout(() => controller.abort(), 180000);
+    if (controller.signal.aborted) throw controller.signal.reason;
     const response = await fetcher(
       `https://api.openai.com/v1/images/${match ? "edits" : "generations"}`,
       { method: "POST", headers, body: payload, signal: controller.signal },
     );
     if (!response.ok) {
+      const failure = await response.json().catch(() => ({}));
+      const safeToken = (value) =>
+        typeof value === "string"
+          ? value.replace(/[^a-zA-Z0-9_\-.\[\]]/g, "").slice(0, 160)
+          : undefined;
+      const details = diagnostic("openai", {
+        providerStatus: response.status,
+        requestId: safeToken(response.headers.get("x-request-id")),
+        code: safeToken(failure.error?.code),
+        type: safeToken(failure.error?.type),
+        param: safeToken(failure.error?.param),
+      });
+      console.error("[image-edit] OpenAI request failed", details);
       const messages = {
         401: "API 키가 유효하지 않습니다. 키 설정을 확인해 주세요.",
         403: "이미지 모델 사용 권한 또는 OpenAI 조직 인증이 필요합니다.",
@@ -161,6 +209,7 @@ export async function images(
           error:
             messages[response.status] ||
             "이미지 생성에 실패했습니다. 자동 재시도하지 않았습니다.",
+          diagnostic: details,
         },
         502,
       );
@@ -172,28 +221,51 @@ export async function images(
       !data ||
       data.length > 35_000_000 ||
       !/^[A-Za-z0-9+/=]+$/.test(data)
-    )
+    ) {
+      const details = diagnostic("decode-response", {
+        code: "invalid_image_response",
+      });
+      console.error("[image-edit] Invalid response image", details);
       return json(
-        { error: "완성 이미지를 받지 못했습니다. 기존 결과는 유지됩니다." },
+        {
+          error: "완성 이미지를 받지 못했습니다. 기존 결과는 유지됩니다.",
+          diagnostic: details,
+        },
         502,
       );
+    }
     return json({
       id: crypto.randomUUID(),
       src: `data:image/png;base64,${data}`,
       size: body.size,
     });
   } catch (error) {
+    const details = diagnostic("request", {
+      code: controller.signal.aborted
+        ? request.signal.aborted
+          ? "client_aborted"
+          : "request_timeout"
+        : "request_failed",
+      type: error?.name || "Error",
+      transportCode:
+        typeof error?.cause?.code === "string"
+          ? error.cause.code.replace(/[^A-Z0-9_]/g, "").slice(0, 80)
+          : undefined,
+    });
+    console.error("[image-edit] Request failed", details);
     return json(
       {
-        error:
-          error.name === "AbortError"
-            ? "생성 시간이 초과되었습니다. 요청이 처리되었을 수 있으니 사용량을 확인하세요."
-            : "연결이 끊겼습니다. 자동 재시도하지 않았습니다. 사용량을 확인한 뒤 다시 요청하세요.",
+        error: controller.signal.aborted
+          ? "생성 시간이 초과되었습니다. 요청이 처리되었을 수 있으니 사용량을 확인하세요."
+          : "연결이 끊겼습니다. 자동 재시도하지 않았습니다. 사용량을 확인한 뒤 다시 요청하세요.",
+        diagnostic: details,
       },
       502,
     );
   } finally {
     clearTimeout(timer);
-    active.delete(id);
+    request.signal.removeEventListener("abort", cancel);
+    // A late, expired invocation must not unlock a newer request.
+    if (active.get(id) === lease) active.delete(id);
   }
 }

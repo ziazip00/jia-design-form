@@ -316,7 +316,7 @@ export default function Editor() {
           onClose={() => setSeparateLayer(null)}
           onDone={() =>
             setMessage(
-              "편집 결과를 이미지 레이어로 추가했습니다. 원본은 숨겨 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
+              "선택 영역이 삭제되고 배경이 복원되었습니다. 원본은 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
             )
           }
         />

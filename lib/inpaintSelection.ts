@@ -1,5 +1,10 @@
 import { canvas, loadImage } from "./imageSeparation";
-import { compositeSelection, polygonArea, type Point } from "./regionSelection";
+import {
+  compositeSelection,
+  polygonArea,
+  apiMaskPixels,
+  type Point,
+} from "./regionSelection";
 export function selectionMask(width: number, height: number, points: Point[]) {
   if (points.length < 3 || polygonArea(points) < 4)
     throw new Error("외곽선을 닫아 충분한 크기의 영역을 선택하세요.");
@@ -27,27 +32,20 @@ export async function inpaintSelection(
   signal: AbortSignal,
 ) {
   const mask = selectionMask(source.width, source.height, points);
-  const size = 1024,
-    scale = Math.min(size / source.width, size / source.height);
-  const sw = Math.round(source.width * scale),
-    sh = Math.round(source.height * scale),
-    x = Math.floor((size - sw) / 2),
-    y = Math.floor((size - sh) / 2);
-  const input = canvas(size, size),
-    ctx = input.getContext("2d")!;
-  ctx.fillStyle = "#808080";
-  ctx.fillRect(0, 0, size, size);
-  ctx.drawImage(source, x, y, sw, sh);
-  const apiMask = canvas(size, size),
+  // Send the actual source dimensions. Do not shrink small selections or add padding.
+  const apiMask = canvas(source.width, source.height),
     mc = apiMask.getContext("2d")!;
-  mc.fillStyle = "#ffffff";
-  mc.fillRect(0, 0, size, size);
-  mc.globalCompositeOperation = "destination-out";
-  mc.imageSmoothingEnabled = false;
-  mc.drawImage(mask, x, y, sw, sh);
-  const image = input.toDataURL("image/png"),
+  const selectionPixels = mask
+    .getContext("2d")!
+    .getImageData(0, 0, source.width, source.height).data;
+  mc.putImageData(
+    new ImageData(apiMaskPixels(selectionPixels), source.width, source.height),
+    0,
+    0,
+  );
+  const image = source.toDataURL("image/png"),
     maskData = apiMask.toDataURL("image/png");
-  if (image.length + maskData.length > 5_900_000)
+  if (image.length + maskData.length > 15_900_000)
     throw new Error(
       "이미지가 너무 복잡합니다. 이미지 크기를 줄여 다시 시도하세요.",
     );
@@ -59,25 +57,55 @@ export async function inpaintSelection(
       mode: "edit",
       image,
       mask: maskData,
-      size: "1024x1024",
+      size:
+        source.width / source.height > 1.2
+          ? "1536x1024"
+          : source.width / source.height < 0.83
+            ? "1024x1536"
+            : "1024x1024",
       quality: "medium",
       prompt:
-        "Remove the object or content ONLY inside the transparent area of the supplied mask. Reconstruct the missing background as if that object had never been there, using the surrounding scene, texture, perspective and lighting. Do not leave a hole, blur patch, solid color block, outline or replacement object. Preserve all unmasked content and exact image alignment, scale and gray padding. Return an opaque fully restored image.",
+        "Remove ALL content inside the transparent area of the supplied mask, including any letters, text, logos or objects there. Reconstruct the missing background as if the selected content had never been there, using surrounding texture, perspective and lighting. Do not leave a hole, blur patch, solid color block, outline or replacement object. Preserve the full original composition edge-to-edge without cropping, stretching, shifting or adding padding. Return an opaque fully restored image.",
     }),
   });
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(data.error || "자동 자리 채우기에 실패했습니다.");
+  const data = await response.json().catch(() => {
+    throw Object.assign(
+      new Error(
+        `서버가 이미지 응답을 반환하지 않았습니다 (HTTP ${response.status}).`,
+      ),
+      { diagnostic: { stage: "http-response", httpStatus: response.status } },
+    );
+  });
+  if (!response.ok || data.error)
+    throw Object.assign(
+      new Error(data.error || "자동 자리 채우기에 실패했습니다."),
+      {
+        diagnostic: {
+          httpStatus: response.status,
+          code: data.code,
+          retryAfter: data.retryAfter,
+          ...data.diagnostic,
+        },
+      },
+    );
+  if (
+    typeof data.src !== "string" ||
+    !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(data.src)
+  )
+    throw Object.assign(
+      new Error("서버 응답에 유효한 PNG 이미지가 없습니다."),
+      { diagnostic: { stage: "decode-image" } },
+    );
   const generated = await loadImage(data.src);
   if (signal.aborted) throw new DOMException("Aborted", "AbortError");
   const restored = canvas(source.width, source.height),
     rc = restored.getContext("2d")!;
   rc.drawImage(
     generated,
-    (x * generated.width) / size,
-    (y * generated.height) / size,
-    (sw * generated.width) / size,
-    (sh * generated.height) / size,
+    0,
+    0,
+    generated.width,
+    generated.height,
     0,
     0,
     source.width,
@@ -89,7 +117,7 @@ export async function inpaintSelection(
   const merged = compositeSelection(
     original.data,
     rc.getImageData(0, 0, source.width, source.height).data,
-    mask.getContext("2d")!.getImageData(0, 0, source.width, source.height).data,
+    selectionPixels,
   );
   rc.putImageData(new ImageData(merged, source.width, source.height), 0, 0);
   return restored.toDataURL("image/png");
