@@ -1,6 +1,12 @@
 import type { DesignDocument, DesignLayer } from "../types/design";
 import { fillsOf } from "./layerStyles";
-import { dominantColors, mapColor, mix, readableColor } from "./paletteColors";
+import {
+  dominantColors,
+  luminance,
+  mapColor,
+  mix,
+  readableColor,
+} from "./paletteColors";
 export interface ColorOrigin {
   source?: string;
   colors: Record<string, string>;
@@ -179,19 +185,28 @@ export function applyPalette(
   includeImages = true,
 ) {
   const original = originalDocument(doc, origins);
-  const vectorSource = original.layers.some(l => l.type !== 'image' && l.visible && !l.locked) ? designColors(original) : source;
+  const rankedTarget = [...target].sort((a, b) => luminance(b) - luminance(a));
+  const vectorSource = original.layers.some(
+    (l) => l.type !== "image" && l.visible && !l.locked,
+  )
+    ? designColors(original)
+    : source;
   let next: DesignDocument = {
     ...doc,
     palette: { id, colors: [...target] },
     canvas: {
       ...doc.canvas,
-      background: mapColor(original.canvas.background, vectorSource, target),
+      background: mapColor(
+        original.canvas.background,
+        vectorSource,
+        rankedTarget,
+      ),
     },
     layers: original.layers.map((l) => {
       if (l.locked || !l.visible) return l;
       const values = colorsOf(l);
       for (const k of Object.keys(values))
-        values[k] = mapColor(values[k], vectorSource, target);
+        values[k] = mapColor(values[k], vectorSource, rankedTarget);
       let result = replaceColors(l, values);
       if (result.type === "image") {
         const analysis = analyses[l.id];
@@ -200,7 +215,7 @@ export function applyPalette(
           ...result,
           paletteMap:
             includeImages && analysis
-              ? { source: analysis.colors, target: [...target] }
+              ? { source: analysis.colors, target: rankedTarget }
               : current?.type === "image"
                 ? current.paletteMap
                 : undefined,

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "medical",
+    "name": "맑은 클리닉",
+    "colors": ["#F3FAFD", "#C9EAF4", "#428DAE", "#15394E"],
+    "tags": ["blue", "white", "cold", "light", "medical", "sky"]
+  },
+  {
+    "id": "blue-pastel",
+    "name": "파우더 블루",
+    "colors": ["#F2F5FB", "#CEDCEE", "#9AB6DC", "#526888"],
+    "tags": ["blue", "pastel", "cold", "spring", "sky"]
+  },
+  {
+    "id": "mint",
+    "name": "민트 모닝",
+    "colors": ["#F4FCF7", "#D1F0DF", "#8ACDB9", "#3E7264"],
+    "tags": ["mint", "green", "light", "pastel", "spring", "nature"]
+  },
+  {
+    "id": "beige",
+    "name": "따뜻한 리넨",
+    "colors": ["#FCF4E9", "#E8D3B5", "#B98D67", "#674B38"],
+    "tags": ["beige", "warm", "brown", "earth", "vintage"]
+  },
+  {
+    "id": "navy-gold",
+    "name": "미드나잇 골드",
+    "colors": ["#F6EBD2", "#DDB65C", "#52647F", "#15263E"],
+    "tags": ["navy", "gold", "night", "vintage"]
+  },
+  {
+    "id": "christmas",
+    "name": "겨울의 선물",
+    "colors": ["#FAF1DF", "#C9974B", "#B13D43", "#245348"],
+    "tags": ["christmas", "red", "green", "gold", "winter"]
+  },
+  {
+    "id": "teal",
+    "name": "잔잔한 항구",
+    "colors": ["#EFF8F5", "#ADDBD3", "#398E91", "#154852"],
+    "tags": ["teal", "cold", "sea", "summer"]
+  },
+  {
+    "id": "sage",
+    "name": "세이지 정원",
+    "colors": ["#F2F1E5", "#CCD3B6", "#91A487", "#506447"],
+    "tags": ["sage", "green", "nature", "earth", "pastel"]
+  },
+  {
+    "id": "lemon",
+    "name": "레몬 셔벗",
+    "colors": ["#FFFCDF", "#F3E18B", "#D4AF3B", "#786530"],
+    "tags": ["yellow", "light", "warm", "summer"]
+  },
+  {
+    "id": "coffee",
+    "name": "로스팅 룸",
+    "colors": ["#EEE0D0", "#C09B7B", "#896044", "#442E26"],
+    "tags": ["brown", "beige", "warm", "earth", "fall"]
+  },
+  {
+    "id": "orange",
+    "name": "오렌지 스튜디오",
+    "colors": ["#FFF1DD", "#F2BE81", "#DF7435", "#873F2B"],
+    "tags": ["orange", "warm", "retro", "fall"]
+  },
+  {
+    "id": "peach",
+    "name": "피치 블라썸",
+    "colors": ["#FFF4EC", "#F3D6C3", "#ECA894", "#B97A73"],
+    "tags": ["peach", "pink", "pastel", "spring", "light"]
+  },
+  {
+    "id": "red",
+    "name": "체리 포스터",
+    "colors": ["#F8E9DF", "#ECA394", "#C63F4B", "#662839"],
+    "tags": ["red", "warm", "retro"]
+  },
+  {
+    "id": "pink",
+    "name": "로즈 밀크",
+    "colors": ["#FFF1F5", "#F0C7D8", "#D58DAD", "#874963"],
+    "tags": ["pink", "pastel", "spring"]
+  },
+  {
+    "id": "purple",
+    "name": "라벤더 편지",
+    "colors": ["#F4F0FC", "#D8C9EA", "#A992CC", "#604C87"],
+    "tags": ["purple", "pastel", "cold", "spring"]
+  },
+  {
+    "id": "black",
+    "name": "잉크 갤러리",
+    "colors": ["#E7E7E5", "#999D9D", "#4B5052", "#171C20"],
+    "tags": ["black", "grey", "dark", "night"]
+  },
+  {
+    "id": "grey",
+    "name": "실버 페이퍼",
+    "colors": ["#F7F8F9", "#D6DCDF", "#A3ADB4", "#5D6973"],
+    "tags": ["grey", "white", "cold", "winter"]
+  },
+  {
+    "id": "white",
+    "name": "화이트 세라믹",
+    "colors": ["#FFFFFF", "#F0F0E9", "#DADACD", "#818577"],
+    "tags": ["white", "light", "beige"]
+  },
+  {
+    "id": "neon",
+    "name": "일렉트릭 나이트",
+    "colors": ["#EDF77B", "#56EDC4", "#B46EF4", "#241C49"],
+    "tags": ["neon", "purple", "mint", "space", "night"]
+  },
+  {
+    "id": "retro",
+    "name": "레코드 숍",
+    "colors": ["#F3D898", "#C88340", "#61958D", "#5B4540"],
+    "tags": ["retro", "vintage", "orange", "teal", "warm"]
+  },
+  {
+    "id": "winter",
+    "name": "윈터 포그",
+    "colors": ["#F1F7FB", "#C2D5E3", "#769BB4", "#375168"],
+    "tags": ["winter", "blue", "cold", "grey"]
+  },
+  {
+    "id": "summer",
+    "name": "트로피컬 데이",
+    "colors": ["#FFF0A3", "#FAB988", "#66CBC3", "#34767C"],
+    "tags": ["summer", "teal", "peach", "yellow"]
+  },
+  {
+    "id": "fall",
+    "name": "가을 산책",
+    "colors": ["#EEE0B8", "#C99E57", "#A96840", "#584B33"],
+    "tags": ["fall", "earth", "brown", "gold", "warm"]
+  },
+  {
+    "id": "spring",
+    "name": "봄의 꽃집",
+    "colors": ["#FFF4C7", "#EDBAD1", "#AECF9E", "#617E64"],
+    "tags": ["spring", "pastel", "green", "pink", "nature"]
+  },
+  {
+    "id": "forest",
+    "name": "깊은 숲",
+    "colors": ["#D9DFC7", "#9BB388", "#4C775D", "#233F35"],
+    "tags": ["nature", "green", "sage", "earth"]
+  },
+  {
+    "id": "earth",
+    "name": "클레이 테라스",
+    "colors": ["#F1DCC6", "#D0AA83", "#AB735C", "#61544B"],
+    "tags": ["earth", "beige", "brown", "warm"]
+  },
+  {
+    "id": "space",
+    "name": "오비트",
+    "colors": ["#D3D6ED", "#8F90C8", "#4C5189", "#21263F"],
+    "tags": ["space", "night", "navy", "purple", "cold"]
+  },
+  {
+    "id": "gradient",
+    "name": "블루 스펙트럼",
+    "colors": ["#DCEFFC", "#99C7E9", "#538EBE", "#244E80"],
+    "tags": ["gradient", "blue", "cold", "sky"]
+  },
+  {
+    "id": "sunset",
+    "name": "선셋 비치",
+    "colors": ["#FFE3B7", "#F6B390", "#CF7D82", "#705679"],
+    "tags": ["sunset", "peach", "orange", "pink", "warm"]
+  },
+  {
+    "id": "sky",
+    "name": "구름 사이",
+    "colors": ["#FAFCFF", "#D8EAF7", "#92BFE1", "#4D779D"],
+    "tags": ["sky", "blue", "white", "pastel", "light"]
+  },
+  {
+    "id": "sea",
+    "name": "딥 오션",
+    "colors": ["#DBF4EF", "#82C9C1", "#347F91", "#153D58"],
+    "tags": ["sea", "teal", "blue", "navy", "cold"]
+  },
+  {
+    "id": "gold",
+    "name": "샴페인",
+    "colors": ["#FFF4D8", "#E8C785", "#BA9145", "#6E552D"],
+    "tags": ["gold", "beige", "warm", "vintage"]
+  },
+  {
+    "id": "dark",
+    "name": "차콜 블룸",
+    "colors": ["#B6A4C0", "#806D91", "#47415F", "#252334"],
+    "tags": ["dark", "purple", "black", "night"]
+  },
+  {
+    "id": "green-neon",
+    "name": "라임 시그널",
+    "colors": ["#ECFF9C", "#BAF253", "#58A960", "#244735"],
+    "tags": ["neon", "green", "yellow", "summer"]
+  },
+  {
+    "id": "medical-mint",
+    "name": "프레시 케어",
+    "colors": ["#F8FDFB", "#CFEADF", "#7CBFAC", "#386B65"],
+    "tags": ["medical", "mint", "white", "light", "nature"]
+  },
+  {
+    "id": "navy-peach",
+    "name": "이브닝 라운지",
+    "colors": ["#F7E4D5", "#DCA58C", "#63778D", "#223B54"],
+    "tags": ["navy", "peach", "vintage", "night"]
+  },
+  {
+    "id": "beige-blue",
+    "name": "샌드 앤 스카이",
+    "colors": ["#F7EDDC", "#DBC5A3", "#7FAFC2", "#425D75"],
+    "tags": ["beige", "blue", "sea", "summer"]
+  },
+  {
+    "id": "warm-pastel",
+    "name": "소프트 브런치",
+    "colors": ["#FFF6E5", "#F1D6AE", "#E8B3A3", "#A98376"],
+    "tags": ["warm", "pastel", "beige", "peach", "light"]
+  },
+  {
+    "id": "red-night",
+    "name": "버건디 시네마",
+    "colors": ["#DFC1B2", "#AB6C73", "#703F52", "#322837"],
+    "tags": ["red", "dark", "night", "vintage"]
+  },
+  {
+    "id": "mint-light",
+    "name": "민트 글래스",
+    "colors": ["#FAFFFD", "#E1F5EE", "#B7E2D3", "#79B6A6"],
+    "tags": ["mint", "light", "pastel", "summer"]
+  }
+]

@@ -16,6 +16,7 @@ import {
 } from "@/lib/paletteDocument";
 import { analyzeImage } from "@/lib/paletteImage";
 import { recommendPalettes, type Palette } from "@/lib/paletteColors";
+import PaletteExplorer from "./PaletteExplorer";
 import { ColorField } from "./properties/Fields";
 export default function ColorPalette({
   disabled = false,
@@ -25,6 +26,7 @@ export default function ColorPalette({
   const doc = useEditorStore((s) => s.document),
     origins = useEditorStore((s) => s.colorOrigins),
     selected = useEditorStore((s) => s.selectedId);
+  const [exploring, setExploring] = useState(false);
   const [analyses, setAnalyses] = useState<ImageAnalyses>({}),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
@@ -151,12 +153,29 @@ export default function ColorPalette({
       useEditorStore.getState().previewPalette(result(p).document);
     }, 100);
   };
+  const restore = () => {
+    stop();
+    const s = useEditorStore.getState();
+    s.commit(
+      originalDocument(s.document, captureOrigins(s.document, s.colorOrigins)),
+    );
+    setNotice("원본 색상으로 복원했습니다.");
+    setEditing(null);
+  };
+  useEffect(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    setHover(null);
+    useEditorStore.getState().previewPalette(null);
+  }, [doc, disabled]);
   const palette = palettes.find((p) => p.id === editing?.id);
   return (
     <section
       className="color-palette"
       aria-label="컬러 팔레트"
-      onPointerLeave={stop}
+      onPointerLeave={() => {
+        if (!exploring) stop();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           setEditing(null);
@@ -174,18 +193,7 @@ export default function ColorPalette({
             type="button"
             disabled={disabled || !doc.layers.length}
             title="레이어 위치·내용을 유지하고 처음 색상으로 복원"
-            onClick={() => {
-              stop();
-              const s = useEditorStore.getState();
-              s.commit(
-                originalDocument(
-                  s.document,
-                  captureOrigins(s.document, s.colorOrigins),
-                ),
-              );
-              setNotice("원본 색상으로 복원했습니다.");
-              setEditing(null);
-            }}
+            onClick={restore}
           >
             {" "}
             <RotateCcw size={12} /> 원본 색상
@@ -211,7 +219,7 @@ export default function ColorPalette({
         </div>
       </div>
       <div ref={row} className="palette-list">
-        {palettes.map((p) => (
+        {palettes.slice(0, 5).map((p) => (
           <div
             className={`palette-card ${doc.palette?.id === p.id ? "active" : ""} ${hover === p.id ? "previewing" : ""}`}
             key={p.id}
@@ -250,6 +258,33 @@ export default function ColorPalette({
           </div>
         ))}
       </div>
+      <button
+        type="button"
+        className="palette-explore-open"
+        onClick={() => {
+          stop();
+          setEditing(null);
+          setExploring(true);
+        }}
+      >
+        더 많은 팔레트 보기 <ChevronRight size={14} />
+      </button>
+      {exploring && (
+        <PaletteExplorer
+          recommendations={palettes}
+          source={source}
+          blocked={blocked}
+          notice={notice}
+          onPreview={preview}
+          onStop={stop}
+          onApply={apply}
+          onOriginal={restore}
+          onClose={() => {
+            stop();
+            setExploring(false);
+          }}
+        />
+      )}
       {editing && palette && (
         <div className="palette-chip-editor">
           <span>
