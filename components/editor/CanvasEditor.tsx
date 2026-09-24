@@ -13,7 +13,8 @@ export default function CanvasEditor({
   stageRef: React.RefObject<Konva.Stage | null>;
   onImageAction: (action: ImageAction) => void;
 }) {
-  const { document: doc, selectedId, select, patch } = useEditorStore();
+  const { document: committed, palettePreview, selectedId, select, patch } = useEditorStore();
+  const doc=palettePreview??committed;
   const host = useRef<HTMLDivElement>(null),
     transformer = useRef<Konva.Transformer>(null);
   const [area, setArea] = useState({ width: 700, height: 700 }),

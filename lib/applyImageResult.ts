@@ -22,6 +22,7 @@ export function applyImageResult(
     flipX: false,
     flipY: false,
     crop: undefined,
+    paletteMap: undefined,
   };
   layers.splice(
     index,

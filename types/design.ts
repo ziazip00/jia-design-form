@@ -66,6 +66,7 @@ export interface ImageLayer extends BaseLayer {
   flipY: boolean;
   keepRatio: boolean;
   crop?: { x: number; y: number; width: number; height: number };
+  paletteMap?: { source: string[]; target: string[] };
 }
 export interface ShapeLayer extends BaseLayer {
   type: "shape";
@@ -87,6 +88,7 @@ export type LayerPatch = Partial<BaseLayer> &
   Partial<Omit<ShapeLayer, "type">> &
   Partial<Omit<IconLayer, "type">>;
 export interface DesignDocument {
+  palette?: { id: string; colors: string[] };
   id: string;
   name: string;
   canvas: { width: number; height: number; background: string };

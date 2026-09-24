@@ -1,4 +1,5 @@
 import Konva from "konva";
+import {paletteImage} from './paletteImage';
 import type { DesignLayer } from "../types/design";
 import { fillsOf, strokesOf, effectsOf, stylePadding } from "./layerStyles";
 export const iconPath = (icon: string) =>
@@ -132,6 +133,7 @@ export function renderLayerStyle(l: DesignLayer, image?: HTMLImageElement) {
   const base = blank(),
     b = base.getContext("2d")!;
   if (l.type === "image" && image) {
+    const painted=l.paletteMap?paletteImage(image,l.paletteMap):image;
     const crop = l.crop ?? { x: 0, y: 0, width: 1, height: 1 };
     b.save();
     b.translate(
@@ -140,11 +142,11 @@ export function renderLayerStyle(l: DesignLayer, image?: HTMLImageElement) {
     );
     b.scale(l.flipX ? -1 : 1, l.flipY ? -1 : 1);
     b.drawImage(
-      image,
-      crop.x * image.naturalWidth,
-      crop.y * image.naturalHeight,
-      crop.width * image.naturalWidth,
-      crop.height * image.naturalHeight,
+      painted,
+      crop.x * painted.width,
+      crop.y * painted.height,
+      crop.width * painted.width,
+      crop.height * painted.height,
       0,
       0,
       l.width * scale,

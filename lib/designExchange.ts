@@ -127,6 +127,12 @@ export function parseExchange(input: unknown): DesignDocument {
       )
         throw new Error("자르기 영역이 잘못되었습니다.");
     }
+    if (l.type === "image" && l.paletteMap &&
+      (!Array.isArray(l.paletteMap.source) || !Array.isArray(l.paletteMap.target) ||
+       l.paletteMap.source.length < 1 || l.paletteMap.source.length > 5 ||
+       l.paletteMap.target.length < 1 || l.paletteMap.target.length > 5 ||
+       !l.paletteMap.source.every(color) || !l.paletteMap.target.every(color)))
+      throw new Error("이미지 팔레트 색상이 잘못되었습니다.");
     for (const key of [
       "shadowBlur",
       "shadowOffsetX",
@@ -162,6 +168,16 @@ export function parseExchange(input: unknown): DesignDocument {
 }
 export async function exchangeDocument(document: DesignDocument) {
   const copy = structuredClone(document);
+  for (const l of copy.layers) {
+    if (l.type === "image" && l.paletteMap) {
+      const { prepareImage } = await import("./imageSeparation");
+      l.src = (await prepareImage(l, Infinity)).toDataURL("image/png");
+      l.paletteMap = undefined;
+      l.crop = undefined;
+      l.flipX = false;
+      l.flipY = false;
+    }
+  }
   // Rasterize SVG image assets for the native Figma image API, keep other layers editable.
   for (const l of copy.layers)
     if (

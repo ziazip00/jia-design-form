@@ -102,7 +102,7 @@ export function advancedStyle(l: DesignLayer) {
     l.strokes ||
     l.effects ||
     l.cornerRadius ||
-    (l.type === "image" && l.crop)
+    (l.type === "image" && (l.crop || l.paletteMap))
   );
 }
 export function alignedPosition(

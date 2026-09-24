@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { mockDocument } from "@/lib/designParser";
+import ColorPalette from './ColorPalette';
+import {prepareImage} from '@/lib/imageSeparation';
 type Result = { id: string; src: string; size: string };
 export default function AIComposer({
   onSeparate,
@@ -134,6 +136,8 @@ export default function AIComposer({
       setStatus(
         "완성되었습니다. 추가 수정 내용을 입력하거나 캔버스에 적용하세요.",
       );
+      await onApply(next.src,false);
+      setStatus('완성 이미지를 캔버스에 추가했습니다. 컬러 팔레트로 색상을 바꿔 보세요.');
     } catch (e) {
       setError(
         e instanceof Error
@@ -239,12 +243,13 @@ export default function AIComposer({
                 : "이미지 생성"}
           </button>
         </form>
+        <ColorPalette disabled={busy||preparing}/>
         <div className="composer-actions">
           <button type="button" onClick={() => file.current?.click()}>
             ＋ 사진 첨부
           </button>
           {selected?.type === "image" && (
-            <button type="button" onClick={() => void prepare(selected.src)}>
+            <button type="button" onClick={() => {void prepareImage(selected,1536).then(c=>prepare(c.toDataURL('image/png'))).catch(()=>setError('선택 이미지를 읽지 못했습니다.'));}}>
               선택 사진 가져오기
             </button>
           )}

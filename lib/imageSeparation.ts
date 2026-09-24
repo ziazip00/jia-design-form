@@ -1,5 +1,6 @@
 import type { ImageLayer, DesignLayer } from "../types/design";
 import { makeLayer } from "./designParser";
+import {recolorPixels} from './paletteColors';
 
 export interface TextRegion {
   id: string;
@@ -58,6 +59,7 @@ export async function prepareImage(layer: ImageLayer, maxDimension = 1600) {
     c.width,
     c.height,
   );
+  if(layer.paletteMap){const data=ctx.getImageData(0,0,c.width,c.height);data.data.set(recolorPixels(data.data,layer.paletteMap.source,layer.paletteMap.target));ctx.putImageData(data,0,0);}
   return c;
 }
 function cancelled() {

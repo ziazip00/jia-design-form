@@ -18,7 +18,7 @@ export default function PropertiesPanel({
   stageRef: React.RefObject<Konva.Stage | null>;
 }) {
   const s = useEditorStore(),
-    base = s.document.layers.find((l) => l.id === s.selectedId),
+    base = (s.palettePreview??s.document).layers.find((l) => l.id === s.selectedId),
     l =
       base && s.preview?.id === base.id
         ? { ...base, ...s.preview.values }
