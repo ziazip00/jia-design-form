@@ -31,6 +31,7 @@ export default function ImageSeparationDialog({
   const [loaded, setLoaded] = useState(false),
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState("이미지를 준비하고 있습니다…");
+  const [editPrompt, setEditPrompt] = useState("");
   const [view, setView] = useState<"original" | "regions" | "result">(
     "regions",
   );
@@ -176,7 +177,7 @@ export default function ImageSeparationDialog({
       setStatus((e as Error).message);
     }
   }
-  async function remove() {
+  async function remove(prompt?: string) {
     if (running.current || !confirmed || !source.current) return;
     running.current = true;
     setBusy(true);
@@ -189,6 +190,7 @@ export default function ImageSeparationDialog({
         source.current,
         selectionRef.current.points,
         abort.signal,
+        prompt,
       );
       if (abort.signal.aborted) return;
       const state = useEditorStore.getState();
@@ -206,7 +208,11 @@ export default function ImageSeparationDialog({
       state.select(layer.id);
       setResult(output);
       setView("result");
-      setStatus("선택 영역이 삭제되고 배경이 복원되었습니다.");
+      setStatus(
+        prompt
+          ? "선택 영역에 프롬프트 편집을 적용했습니다."
+          : "선택 영역이 삭제되고 배경이 복원되었습니다.",
+      );
       onDone();
     } catch (e) {
       console.error("[inpainting] 자동 자리 채우기에 실패했습니다.", {
@@ -486,6 +492,23 @@ export default function ImageSeparationDialog({
                 복원 품질은 배경에 따라 달라집니다. 단색·투명 채우기로 대체하지
                 않습니다.
               </p>
+            </section>
+            <section>
+              <h3>선택 영역 AI 편집</h3>
+              <textarea
+                aria-label="선택 영역 편집 프롬프트"
+                placeholder="선택 영역을 어떻게 바꿀까요?"
+                maxLength={3500}
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+              />
+              <button
+                className="separation-action"
+                disabled={!confirmed || !editPrompt.trim()}
+                onClick={() => void remove(editPrompt.trim())}
+              >
+                선택 영역에 프롬프트 적용
+              </button>
             </section>
           </fieldset>
         </div>

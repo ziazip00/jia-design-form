@@ -28,6 +28,9 @@ import PropertiesPanel from "./PropertiesPanel";
 import AIComposer from "./AIComposer";
 import ImageSeparationDialog from "./ImageSeparationDialog";
 import type { ImageLayer } from "@/types/design";
+import CropDialog from "./CropDialog";
+import ImageEditDialog from "./ImageEditDialog";
+import type { ImageAction } from "./ImageContextToolbar";
 export default function Editor() {
   const stageRef = useRef<Konva.Stage>(null),
     fileRef = useRef<HTMLInputElement>(null);
@@ -36,6 +39,10 @@ export default function Editor() {
   const [separateLayer, setSeparateLayer] = useState<ImageLayer | null>(null);
   const splitUpload = useRef(false);
   const [connections, setConnections] = useState(false);
+  const [imageAction, setImageAction] = useState<{
+    layer: ImageLayer;
+    action: Exclude<ImageAction, "region">;
+  } | null>(null);
   const s = useEditorStore();
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -106,7 +113,11 @@ export default function Editor() {
       const added = makeLayer("image", {
         name: file.name,
         src,
-        ...fitImage(image.width, image.height, useEditorStore.getState().document.canvas),
+        ...fitImage(
+          image.width,
+          image.height,
+          useEditorStore.getState().document.canvas,
+        ),
       }) as ImageLayer;
       useEditorStore.getState().add(added);
       if (separate)
@@ -282,7 +293,19 @@ export default function Editor() {
           <LayerPanel />
         </aside>
         <div className="center">
-          <CanvasEditor stageRef={stageRef} />
+          <CanvasEditor
+            stageRef={stageRef}
+            onImageAction={(action) => {
+              const l = useEditorStore
+                .getState()
+                .document.layers.find(
+                  (l) => l.id === useEditorStore.getState().selectedId,
+                );
+              if (l?.type !== "image" || l.locked) return;
+              if (action === "region") startSeparation();
+              else setImageAction({ layer: l, action });
+            }}
+          />
           <AIComposer
             onSeparate={startSeparation}
             onApply={async (src, separate) => {
@@ -307,16 +330,35 @@ export default function Editor() {
             }}
           />
         </div>
-        <PropertiesPanel onSeparate={startSeparation} />
+        <PropertiesPanel onSeparate={startSeparation} stageRef={stageRef} />
       </div>
-      {connections && <ConnectionsDialog onClose={() => setConnections(false)} />}
+      {connections && (
+        <ConnectionsDialog onClose={() => setConnections(false)} />
+      )}
+      {imageAction?.action === "crop" && (
+        <CropDialog
+          layer={imageAction.layer}
+          onClose={() => setImageAction(null)}
+        />
+      )}
+      {imageAction && imageAction.action !== "crop" && (
+        <ImageEditDialog
+          layer={imageAction.layer}
+          mode={imageAction.action}
+          onClose={() => setImageAction(null)}
+          onRegion={() => {
+            setSeparateLayer(imageAction.layer);
+            setImageAction(null);
+          }}
+        />
+      )}
       {separateLayer && (
         <ImageSeparationDialog
           layer={separateLayer}
           onClose={() => setSeparateLayer(null)}
           onDone={() =>
             setMessage(
-              "선택 영역이 삭제되고 배경이 복원되었습니다. 원본은 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
+              "이미지 편집 결과를 적용했습니다. 원본은 보관했고 Ctrl Z로 되돌릴 수 있습니다.",
             )
           }
         />

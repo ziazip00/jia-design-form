@@ -7,6 +7,9 @@ interface EditorState {
   selectedId: string | null;
   past: DesignDocument[];
   future: DesignDocument[];
+  preview: { id: string; values: Record<string, number> } | null;
+  previewTransform: (id: string, values: Record<string, number>) => void;
+  clearPreview: () => void;
   select: (id: string | null) => void;
   commit: (doc: DesignDocument) => void;
   patch: (id: string, patch: Record<string, unknown>) => void;
@@ -22,13 +25,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedId: null,
   past: [],
   future: [],
-  select: (selectedId) => set({ selectedId }),
+  preview: null,
+  previewTransform: (id, values) => set({ preview: { id, values } }),
+  clearPreview: () => set({ preview: null }),
+  select: (selectedId) => set({ selectedId, preview: null }),
   commit: (doc) => {
     const s = get();
     const next = normalize(doc);
     if (JSON.stringify(next) === JSON.stringify(s.document)) return;
     set({
       document: next,
+      preview: null,
       past: remember(s.past, s.document),
       future: [],
       selectedId: next.layers.some((l) => l.id === s.selectedId)
@@ -91,6 +98,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!s.past.length) return;
     set({
       document: s.past.at(-1)!,
+      preview: null,
       past: s.past.slice(0, -1),
       future: [s.document, ...s.future],
       selectedId: null,
@@ -101,6 +109,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!s.future.length) return;
     set({
       document: s.future[0],
+      preview: null,
       past: remember(s.past, s.document),
       future: s.future.slice(1),
       selectedId: null,

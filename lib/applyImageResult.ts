@@ -16,7 +16,13 @@ export function applyImageResult(
       "처리 중 원본 레이어가 변경됐습니다. 창을 닫고 다시 선택하세요.",
     );
   const layers = [...document.layers];
-  const restored: ImageLayer = { ...expected, src, flipX: false, flipY: false };
+  const restored: ImageLayer = {
+    ...expected,
+    src,
+    flipX: false,
+    flipY: false,
+    crop: undefined,
+  };
   layers.splice(
     index,
     1,

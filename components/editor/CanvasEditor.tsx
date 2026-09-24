@@ -4,10 +4,14 @@ import Konva from "konva";
 import { useEditorStore } from "@/store/editorStore";
 import { LayerNode } from "./LayerNodes";
 import type { TextLayer } from "@/types/design";
+import { fillsOf } from "@/lib/layerStyles";
+import ImageContextToolbar, { type ImageAction } from "./ImageContextToolbar";
 export default function CanvasEditor({
   stageRef,
+  onImageAction,
 }: {
   stageRef: React.RefObject<Konva.Stage | null>;
+  onImageAction: (action: ImageAction) => void;
 }) {
   const { document: doc, selectedId, select, patch } = useEditorStore();
   const host = useRef<HTMLDivElement>(null),
@@ -27,6 +31,22 @@ export default function CanvasEditor({
   const width = doc.canvas.width * scale,
     height = doc.canvas.height * scale;
   const selected = doc.layers.find((l) => l.id === selectedId);
+  const preview = useEditorStore((s) => s.preview);
+  const [toolbar, setToolbar] = useState({ left: 12, top: 52 });
+  const locateToolbar = () => {
+    const n = stageRef.current?.findOne("#" + selectedId),
+      h = host.current?.getBoundingClientRect(),
+      c = stageRef.current?.container().getBoundingClientRect();
+    if (!n || !h || !c) return;
+    const r = n.getClientRect();
+    setToolbar({
+      left: Math.max(8, Math.min(h.width - 510, c.left - h.left + r.x)),
+      top: Math.max(50, Math.min(h.height - 90, c.top - h.top + r.y - 54)),
+    });
+  };
+  useEffect(() => {
+    locateToolbar();
+  }, [doc, selectedId, preview, scale, area]);
   useEffect(() => {
     const ro = new ResizeObserver((entries) => {
       const r = entries[0].contentRect;
@@ -61,7 +81,7 @@ export default function CanvasEditor({
           {doc.canvas.width} × {doc.canvas.height}
         </span>
       </div>
-      <div className="canvas-scroll">
+      <div className="canvas-scroll" onScroll={locateToolbar}>
         <div className="artboard" style={{ width, height }}>
           <Stage
             ref={stageRef}
@@ -99,16 +119,34 @@ export default function CanvasEditor({
                     draggable={!l.locked}
                     onClick={() => select(l.id)}
                     onTap={() => select(l.id)}
+                    onDragStart={() => select(l.id)}
+                    onDragMove={(e) =>
+                      useEditorStore.getState().previewTransform(l.id, {
+                        x: e.target.x(),
+                        y: e.target.y(),
+                      })
+                    }
+                    onTransform={(e) => {
+                      const n = e.target;
+                      useEditorStore.getState().previewTransform(l.id, {
+                        x: n.x(),
+                        y: n.y(),
+                        width: l.width * n.scaleX(),
+                        height: l.height * n.scaleY(),
+                        rotation: n.rotation(),
+                      });
+                    }}
                     onDblClick={() => {
                       if (l.type === "text" && !l.locked)
                         setEditing({ layer: l, value: l.text });
                     }}
-                    onDragEnd={(e) =>
+                    onDragEnd={(e) => {
                       patch(l.id, {
                         x: Math.round(e.target.x()),
                         y: Math.round(e.target.y()),
-                      })
-                    }
+                      });
+                      useEditorStore.getState().clearPreview();
+                    }}
                     onTransformEnd={(e) => {
                       const n = e.target;
                       const sx = n.scaleX(),
@@ -122,6 +160,7 @@ export default function CanvasEditor({
                         height: Math.max(10, Math.round(l.height * sy)),
                         rotation: Math.round(n.rotation()),
                       });
+                      useEditorStore.getState().clearPreview();
                     }}
                   >
                     <Rect
@@ -138,11 +177,9 @@ export default function CanvasEditor({
                 ref={transformer}
                 rotateEnabled
                 flipEnabled={false}
-                keepRatio={
-                  selected?.type === "image" ? selected.keepRatio : false
-                }
+                keepRatio={selected?.keepRatio ?? false}
                 enabledAnchors={
-                  selected?.type === "image" && selected.keepRatio
+                  selected?.keepRatio
                     ? ["top-left", "top-right", "bottom-left", "bottom-right"]
                     : undefined
                 }
@@ -183,7 +220,10 @@ export default function CanvasEditor({
                 lineHeight: editing.layer.lineHeight,
                 letterSpacing: editing.layer.letterSpacing * scale,
                 textAlign: editing.layer.align,
-                color: editing.layer.color,
+                color:
+                  fillsOf(editing.layer)
+                    .filter((f) => f.visible)
+                    .at(-1)?.color ?? editing.layer.color,
                 transform: `rotate(${editing.layer.rotation}deg)`,
                 transformOrigin: "top left",
                 padding: 0,
@@ -196,6 +236,17 @@ export default function CanvasEditor({
           )}
         </div>
       </div>
+      {selected?.type === "image" &&
+        selected.visible &&
+        !selected.locked &&
+        !editing && (
+          <ImageContextToolbar
+            layer={selected}
+            left={toolbar.left}
+            top={toolbar.top}
+            onAction={onImageAction}
+          />
+        )}
       <div className="canvas-footer">
         <span>더블클릭으로 텍스트 편집 · Shift로 비율 유지</span>
         <div>

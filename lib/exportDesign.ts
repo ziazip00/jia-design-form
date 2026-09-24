@@ -17,6 +17,7 @@ export async function renderDesign(
   format: "png" | "jpeg" = "png",
 ) {
   await document.fonts.ready;
+  for(const node of stage.find('.styled-layer'))if(!node.getAttr('styleReady'))throw new Error('이미지 로딩 중');
   for (const node of stage.find("Image")) {
     if (!node.getAttr("image")) throw new Error("이미지 로딩 중");
   }

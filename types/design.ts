@@ -1,4 +1,26 @@
+export interface Paint {
+  id: string;
+  color: string;
+  opacity: number;
+  visible: boolean;
+}
+export interface Stroke extends Paint {
+  width: number;
+  position: "inside" | "center" | "outside";
+}
+export interface LayerEffect extends Paint {
+  type: "shadow" | "inner" | "blur" | "glow";
+  x: number;
+  y: number;
+  blur: number;
+  spread: number;
+}
 export interface BaseLayer {
+  fills?: Paint[];
+  strokes?: Stroke[];
+  effects?: LayerEffect[];
+  keepRatio?: boolean;
+  cornerRadius?: number;
   id: string;
   name: string;
   type: "text" | "image" | "shape" | "icon";
@@ -43,6 +65,7 @@ export interface ImageLayer extends BaseLayer {
   flipX: boolean;
   flipY: boolean;
   keepRatio: boolean;
+  crop?: { x: number; y: number; width: number; height: number };
 }
 export interface ShapeLayer extends BaseLayer {
   type: "shape";

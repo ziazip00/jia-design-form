@@ -30,6 +30,7 @@ export async function inpaintSelection(
   source: HTMLCanvasElement,
   points: Point[],
   signal: AbortSignal,
+  prompt?: string,
 ) {
   const mask = selectionMask(source.width, source.height, points);
   // Send the actual source dimensions. Do not shrink small selections or add padding.
@@ -64,8 +65,9 @@ export async function inpaintSelection(
             ? "1024x1536"
             : "1024x1024",
       quality: "medium",
-      prompt:
-        "Remove ALL content inside the transparent area of the supplied mask, including any letters, text, logos or objects there. Reconstruct the missing background as if the selected content had never been there, using surrounding texture, perspective and lighting. Do not leave a hole, blur patch, solid color block, outline or replacement object. Preserve the full original composition edge-to-edge without cropping, stretching, shifting or adding padding. Return an opaque fully restored image.",
+      prompt: prompt
+        ? `${prompt} Edit only inside the transparent mask. Preserve everything outside the mask and preserve original framing.`
+        : "Remove ALL content inside the transparent area of the supplied mask, including any letters, text, logos or objects there. Reconstruct the missing background as if the selected content had never been there, using surrounding texture, perspective and lighting. Do not leave a hole, blur patch, solid color block, outline or replacement object. Preserve the full original composition edge-to-edge without cropping, stretching, shifting or adding padding. Return an opaque fully restored image.",
     }),
   });
   const data = await response.json().catch(() => {

@@ -36,15 +36,28 @@ export async function prepareImage(layer: ImageLayer, maxDimension = 1600) {
   const image = await loadImage(layer.src);
   if (image.width * image.height > 40_000_000)
     throw new Error("4천만 화소 이하의 이미지를 사용해 주세요.");
-  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  const crop = layer.crop ?? { x: 0, y: 0, width: 1, height: 1 };
+  const cw = image.width * crop.width,
+    ch = image.height * crop.height;
+  const scale = Math.min(1, maxDimension / Math.max(cw, ch));
   const c = canvas(
-    Math.max(1, Math.round(image.width * scale)),
-    Math.max(1, Math.round(image.height * scale)),
+    Math.max(1, Math.round(cw * scale)),
+    Math.max(1, Math.round(ch * scale)),
   );
   const ctx = c.getContext("2d")!;
   ctx.translate(layer.flipX ? c.width : 0, layer.flipY ? c.height : 0);
   ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
-  ctx.drawImage(image, 0, 0, c.width, c.height);
+  ctx.drawImage(
+    image,
+    crop.x * image.width,
+    crop.y * image.height,
+    cw,
+    ch,
+    0,
+    0,
+    c.width,
+    c.height,
+  );
   return c;
 }
 function cancelled() {

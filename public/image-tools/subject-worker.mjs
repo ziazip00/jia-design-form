@@ -37,7 +37,7 @@ self.onmessage = async ({ data: rgba }) => {
     }
     if (high - min < 0.00001)
       throw new Error(
-        "피사체 경계를 찾지 못했습니다. 브러시로 직접 선택해 주세요.",
+        "피사체 경계를 찾지 못했습니다. 배경과 피사체가 뚜렷한 이미지를 사용해 주세요.",
       );
     const mask = new Uint8ClampedArray(n);
     for (let i = 0; i < n; i++)
@@ -46,7 +46,7 @@ self.onmessage = async ({ data: rgba }) => {
   } catch {
     self.postMessage({
       error:
-        "피사체 분석에 실패했습니다. 다시 시도하거나 포함 브러시로 직접 선택해 주세요.",
+        "피사체 분석에 실패했습니다. 다시 시도하거나 다른 이미지를 사용해 주세요.",
     });
   } finally {
     if (session) await session.release();

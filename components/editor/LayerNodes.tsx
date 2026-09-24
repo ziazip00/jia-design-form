@@ -3,6 +3,8 @@ import { Text, Rect, Ellipse, Image as KImage, Path, Shape } from "react-konva";
 import Konva from "konva";
 import type { DesignLayer, ImageLayer, TextLayer } from "@/types/design";
 import { useFontStore } from "@/store/fontStore";
+import { advancedStyle } from "@/lib/layerStyles";
+import StyledLayer from "./StyledLayer";
 function shadow(l: DesignLayer) {
   return {
     shadowColor: l.shadowColor || "#172f47",
@@ -152,6 +154,7 @@ export function ImageNode({ layer }: { layer: ImageLayer }) {
   );
 }
 export function LayerNode({ layer: l }: { layer: DesignLayer }) {
+  if (advancedStyle(l)) return <StyledLayer layer={l} />;
   switch (l.type) {
     case "text":
       return (
