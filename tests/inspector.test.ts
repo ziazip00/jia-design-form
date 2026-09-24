@@ -7,6 +7,10 @@ import { alignedPosition, fillsOf, effectsOf } from "../lib/layerStyles";
 import { parseExchange } from "../lib/designExchange";
 import { applyImageResult } from "../lib/applyImageResult";
 import type { ImageLayer } from "../types/design";
+import {morphAlpha} from '../lib/renderLayerStyle';
+import {selectionSVG,supportsSVG} from '../lib/exportSelection';
+test('stroke and spread morphology expands and contracts only alpha geometry',()=>{const pixels=new Uint8ClampedArray(7*7*4);pixels[(3*7+3)*4+3]=255;const spread=morphAlpha(pixels,7,7,1);assert.equal(Array.from(spread).filter((v,i)=>i%4===3&&v===255).length,9);const contracted=morphAlpha(spread,7,7,1,true);assert.equal(Array.from(contracted).filter((v,i)=>i%4===3&&v===255).length,1);assert.equal(contracted[(3*7+3)*4+3],255);assert.equal(pixels[(3*7+2)*4+3],0);});
+test('SVG exports actual vector geometry and refuses unsupported effects',()=>{const l=makeLayer('shape',{width:100,height:50,fill:'#ff0000',fills:[{id:'fill',color:'#245ac7',opacity:.5,visible:true}]});const svg=selectionSVG(l,2);assert.match(svg,/<rect width="100" height="50"/);assert.match(svg,/fill="#245ac7" opacity="0.5"/);assert.match(svg,/width="200" height="100"/);assert.ok(!svg.includes('<image'));assert.equal(supportsSVG({...l,effects:[{id:'blur',type:'blur',color:'#000000',opacity:1,visible:true,x:0,y:0,spread:0,blur:4}]}),false);});
 test("live transform preview does not mutate documents or add undo entries", () => {
   const layer = makeLayer("shape");
   const doc = { ...blankDocument(), layers: [layer] };

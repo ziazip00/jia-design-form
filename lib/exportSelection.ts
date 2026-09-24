@@ -1,5 +1,5 @@
 import Konva from "konva";
-import type { DesignLayer } from "@/types/design";
+import type { DesignLayer } from "../types/design";
 import { effectsOf, fillsOf, strokesOf, stylePadding } from "./layerStyles";
 import { iconPath } from "./renderLayerStyle";
 export function supportsSVG(l: DesignLayer) {
