@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {makeLayer,blankDocument} from '../lib/designParser';
+import {fitText,textResizeMode} from '../lib/textSizing';
+import {useEditorStore} from '../store/editorStore';
+import type {TextLayer} from '../types/design';
+import {parseExchange} from '../lib/designExchange';
+test('auto sizing changes only box dimensions; fixed text retains manual dimensions',()=>{const l=makeLayer('text',{text:'안녕하세요',fontSize:48,x:13,y:24,rotation:30}) as TextLayer;const next=fitText(l,()=>({width:241,height:60}));assert.deepEqual(next,{...l,width:241,height:60});assert.equal(next.fontSize,48);const fixed={...l,textSizing:'fixed' as const};assert.equal(fitText(fixed,()=>{throw new Error('should not measure fixed');}),fixed);});
+test('rotation or movement does not disable auto width; explicit size adjustment does',()=>{const l=makeLayer('text') as TextLayer;assert.deepEqual(textResizeMode(l,{x:200,rotation:30,width:l.width,height:l.height}),{x:200,rotation:30,width:l.width,height:l.height});assert.equal(textResizeMode(l,{width:l.width+100}).textSizing,'fixed');assert.equal(textResizeMode(l,{width:20,textSizing:'auto'}).textSizing,'auto');});
+test('manual resizing and auto-mode restoration use existing undo history without font scaling',()=>{const l=makeLayer('text') as TextLayer;const doc={...blankDocument(),layers:[l]};useEditorStore.setState({document:doc,past:[],future:[],selectedId:l.id});const s=useEditorStore.getState();s.patch(l.id,{width:200,height:100});let current=useEditorStore.getState().document.layers[0] as TextLayer;assert.equal(current.textSizing,'fixed');assert.equal(current.fontSize,l.fontSize);s.undo();assert.deepEqual(useEditorStore.getState().document,doc);s.redo();s.patch(l.id,{textSizing:'auto'});current=useEditorStore.getState().document.layers[0] as TextLayer;assert.equal(current.textSizing,'auto');assert.equal(current.fontSize,l.fontSize);});
+test('document exchange retains sizing mode and rejects invalid modes',()=>{const l=makeLayer('text',{textSizing:'fixed'});const doc={...blankDocument(),layers:[l]};assert.equal((parseExchange(doc).layers[0] as TextLayer).textSizing,'fixed');assert.throws(()=>parseExchange({...doc,layers:[{...l,textSizing:'invalid'}]}),/크기 모드/);});

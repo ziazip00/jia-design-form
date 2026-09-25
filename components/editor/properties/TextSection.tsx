@@ -4,6 +4,19 @@ export default function TextSection({ layer: l, patch }: SectionProps) {
   if (l.type !== "text") return null;
   return (
     <Section title="텍스트">
+      <label className="field">
+        텍스트 박스 크기
+        <select
+          aria-label="텍스트 박스 크기"
+          value={l.textSizing ?? "auto"}
+          onChange={(e) =>
+            patch({ textSizing: e.target.value as "auto" | "fixed" })
+          }
+        >
+          <option value="auto">자동 너비 · 내용에 맞춤</option>
+          <option value="fixed">고정 크기 · 수동 조절</option>
+        </select>
+      </label>
       <textarea
         aria-label="Text"
         value={l.text}

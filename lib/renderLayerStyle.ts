@@ -86,6 +86,7 @@ export function renderLayerStyle(l: DesignLayer, image?: HTMLImageElement) {
   if (l.type === "text")
     node = new Konva.Text({
       text: l.text,
+      wrap: l.textSizing === "fixed" ? "word" : "none",
       width: l.width,
       height: l.height,
       fontFamily: l.fontFamily,

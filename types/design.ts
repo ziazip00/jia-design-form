@@ -49,6 +49,7 @@ export interface BaseLayer {
   glowBlur?: number;
 }
 export interface TextLayer extends BaseLayer {
+  textSizing?: "auto" | "fixed";
   type: "text";
   text: string;
   fontFamily: string;

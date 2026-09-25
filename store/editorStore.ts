@@ -2,15 +2,17 @@ import { create } from "zustand";
 import type { DesignDocument, DesignLayer } from "../types/design";
 import { blankDocument } from "../lib/designParser";
 import { remember, normalize } from "../lib/history";
-import {captureOrigins,type ColorOrigins} from '../lib/paletteDocument';
+import { captureOrigins, type ColorOrigins } from "../lib/paletteDocument";
+import { fitDocumentText, textResizeMode } from "../lib/textSizing";
 interface EditorState {
+  reflowText: () => void;
   document: DesignDocument;
   selectedId: string | null;
   past: DesignDocument[];
   future: DesignDocument[];
   colorOrigins: ColorOrigins;
   palettePreview: DesignDocument | null;
-  previewPalette: (doc:DesignDocument|null)=>void;
+  previewPalette: (doc: DesignDocument | null) => void;
   preview: { id: string; values: Record<string, number> } | null;
   previewTransform: (id: string, values: Record<string, number>) => void;
   clearPreview: () => void;
@@ -26,25 +28,34 @@ interface EditorState {
 }
 export const useEditorStore = create<EditorState>((set, get) => ({
   document: blankDocument(),
+  reflowText: () => {
+    const doc = get().document;
+    const next = fitDocumentText(doc, undefined, true);
+    if (next !== doc) set({ document: next });
+  },
   selectedId: null,
   past: [],
   future: [],
-  colorOrigins:{canvas:{},layers:{}},
-  palettePreview:null,
-  previewPalette:palettePreview=>set({palettePreview}),
+  colorOrigins: { canvas: {}, layers: {} },
+  palettePreview: null,
+  previewPalette: (palettePreview) => set({ palettePreview }),
   preview: null,
   previewTransform: (id, values) => set({ preview: { id, values } }),
   clearPreview: () => set({ preview: null }),
-  select: (selectedId) => set({ selectedId, preview: null, palettePreview:null }),
+  select: (selectedId) =>
+    set({ selectedId, preview: null, palettePreview: null }),
   commit: (doc) => {
     const s = get();
-    const next = normalize(doc);
-    const colorOrigins=captureOrigins(next,captureOrigins(s.document,s.colorOrigins));
+    const next = normalize(fitDocumentText(doc, s.document));
+    const colorOrigins = captureOrigins(
+      next,
+      captureOrigins(s.document, s.colorOrigins),
+    );
     if (JSON.stringify(next) === JSON.stringify(s.document)) return;
     set({
       document: next,
       colorOrigins,
-      palettePreview:null,
+      palettePreview: null,
       preview: null,
       past: remember(s.past, s.document),
       future: [],
@@ -62,6 +73,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         Object.keys(patch).some((k) => !["locked", "visible"].includes(k)))
     )
       return;
+    if (old.type === "text") patch = textResizeMode(old, patch);
     s.commit({
       ...s.document,
       layers: s.document.layers.map((l) =>
@@ -108,7 +120,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!s.past.length) return;
     set({
       document: s.past.at(-1)!,
-      palettePreview:null,
+      palettePreview: null,
       preview: null,
       past: s.past.slice(0, -1),
       future: [s.document, ...s.future],
@@ -120,7 +132,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!s.future.length) return;
     set({
       document: s.future[0],
-      palettePreview:null,
+      palettePreview: null,
       preview: null,
       past: remember(s.past, s.document),
       future: s.future.slice(1),

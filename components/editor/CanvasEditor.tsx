@@ -3,6 +3,8 @@ import { Stage, Layer, Rect, Group, Transformer } from "react-konva";
 import Konva from "konva";
 import { useEditorStore } from "@/store/editorStore";
 import { LayerNode } from "./LayerNodes";
+import { fitText } from "@/lib/textSizing";
+import { useFontStore } from "@/store/fontStore";
 import type { TextLayer } from "@/types/design";
 import { fillsOf } from "@/lib/layerStyles";
 import ImageContextToolbar, { type ImageAction } from "./ImageContextToolbar";
@@ -13,8 +15,14 @@ export default function CanvasEditor({
   stageRef: React.RefObject<Konva.Stage | null>;
   onImageAction: (action: ImageAction) => void;
 }) {
-  const { document: committed, palettePreview, selectedId, select, patch } = useEditorStore();
-  const doc=palettePreview??committed;
+  const {
+    document: committed,
+    palettePreview,
+    selectedId,
+    select,
+    patch,
+  } = useEditorStore();
+  const doc = palettePreview ?? committed;
   const host = useRef<HTMLDivElement>(null),
     transformer = useRef<Konva.Transformer>(null);
   const [area, setArea] = useState({ width: 700, height: 700 }),
@@ -23,6 +31,28 @@ export default function CanvasEditor({
       layer: TextLayer;
       value: string;
     } | null>(null);
+  const fonts = useFontStore((s) => s.fonts);
+  const [fontVersion, setFontVersion] = useState(0);
+  const cancelled = useRef(false);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      if (active) {
+        useEditorStore.getState().reflowText();
+        setFontVersion((v) => v + 1);
+      }
+    };
+    refresh();
+    document.fonts.ready.then(refresh);
+    document.fonts.addEventListener("loadingdone", refresh);
+    return () => {
+      active = false;
+      document.fonts.removeEventListener("loadingdone", refresh);
+    };
+  }, [fonts]);
+  const draft = editing
+    ? fitText({ ...editing.layer, text: editing.value })
+    : null;
   const fit = Math.min(
     (area.width - 100) / doc.canvas.width,
     (area.height - 110) / doc.canvas.height,
@@ -63,9 +93,10 @@ export default function CanvasEditor({
     );
   }, [selectedId, doc, editing, selected, stageRef]);
   const finish = () => {
-    if (editing) {
+    if (editing && !cancelled.current) {
       patch(editing.layer.id, { text: editing.value });
       setEditing(null);
+      useEditorStore.getState().clearPreview();
     }
   };
   return (
@@ -138,8 +169,11 @@ export default function CanvasEditor({
                       });
                     }}
                     onDblClick={() => {
-                      if (l.type === "text" && !l.locked)
+                      if (l.type === "text" && !l.locked) {
+                        cancelled.current = false;
+                        select(l.id);
                         setEditing({ layer: l, value: l.text });
+                      }
                     }}
                     onDragEnd={(e) => {
                       patch(l.id, {
@@ -169,7 +203,7 @@ export default function CanvasEditor({
                       height={l.height}
                       fill="rgba(0,0,0,0)"
                     />
-                    <LayerNode layer={l} />
+                    <LayerNode key={fontVersion} layer={l} />
                   </Group>
                 ))}
             </Layer>
@@ -195,43 +229,62 @@ export default function CanvasEditor({
               />
             </Layer>
           </Stage>
-          {editing && (
+          {editing && draft && (
             <textarea
               aria-label="캔버스 텍스트 편집"
+              wrap={draft.textSizing === "fixed" ? "soft" : "off"}
+              spellCheck={false}
               autoFocus
               value={editing.value}
-              onChange={(e) =>
-                setEditing({ ...editing, value: e.target.value })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                setEditing({ ...editing, value });
+                const next = fitText({ ...editing.layer, text: value });
+                useEditorStore
+                  .getState()
+                  .previewTransform(editing.layer.id, {
+                    width: next.width,
+                    height: next.height,
+                  });
+              }}
               onBlur={finish}
               onKeyDown={(e) => {
                 e.stopPropagation();
-                if (e.key === "Escape") setEditing(null);
+                if (e.nativeEvent.isComposing) return;
+                if (e.key === "Escape") {
+                  cancelled.current = true;
+                  setEditing(null);
+                  useEditorStore.getState().clearPreview();
+                }
                 if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) finish();
               }}
               style={{
                 position: "absolute",
                 left: editing.layer.x * scale,
                 top: editing.layer.y * scale,
-                width: editing.layer.width * scale,
-                height: editing.layer.height * scale,
-                fontSize: editing.layer.fontSize * scale,
+                width: draft.width,
+                height: draft.height,
+                fontSize: editing.layer.fontSize,
                 fontFamily: editing.layer.fontFamily,
                 fontWeight: editing.layer.fontWeight,
                 lineHeight: editing.layer.lineHeight,
-                letterSpacing: editing.layer.letterSpacing * scale,
+                letterSpacing: editing.layer.letterSpacing,
                 textAlign: editing.layer.align,
                 color:
                   fillsOf(editing.layer)
                     .filter((f) => f.visible)
                     .at(-1)?.color ?? editing.layer.color,
-                transform: `rotate(${editing.layer.rotation}deg)`,
+                transform: `rotate(${editing.layer.rotation}deg) scale(${scale})`,
                 transformOrigin: "top left",
                 padding: 0,
-                border: "1px solid #3b82f6",
+                border: "none",
+                whiteSpace: draft.textSizing === "fixed" ? "pre-wrap" : "pre",
+                overflow: "hidden",
+                minWidth: 1,
+                minHeight: 1,
                 background: "rgba(255,255,255,.95)",
                 resize: "none",
-                outline: "none",
+                outline: `${1 / scale}px solid #3b82f6`,
               }}
             />
           )}

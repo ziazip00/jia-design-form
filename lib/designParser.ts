@@ -27,6 +27,7 @@ export function makeLayer(
   };
   const defaults = {
     text: {
+      textSizing: "auto",
       width: 600,
       height: 150,
       text: "텍스트를 입력하세요",

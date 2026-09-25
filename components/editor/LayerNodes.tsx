@@ -34,6 +34,7 @@ function outline(l: DesignLayer) {
 function textConfig(l: TextLayer) {
   return {
     text: l.text,
+    wrap: l.textSizing === "fixed" ? "word" : "none",
     width: l.width,
     height: l.height,
     fontFamily: l.fontFamily,
