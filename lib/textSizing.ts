@@ -30,6 +30,7 @@ export function autoTextSize(layer: TextLayer) {
 export function fitText(
   layer: TextLayer,
   measure: (l: TextLayer) => { width: number; height: number } = autoTextSize,
+  prev?: (l: TextLayer) => { width: number; height: number } | undefined,
 ): TextLayer {
   if (
     layer.textSizing === "fixed" ||
@@ -37,9 +38,20 @@ export function fitText(
   )
     return layer;
   const size = measure(layer);
-  return size.width === layer.width && size.height === layer.height
-    ? layer
-    : { ...layer, ...size };
+  const prevSize = prev?.(layer);
+  if (
+    prevSize &&
+    size.width === prevSize.width &&
+    size.height === prevSize.height
+  )
+    return layer;
+  if (
+    !prevSize &&
+    size.width === layer.width &&
+    size.height === layer.height
+  )
+    return layer;
+  return { ...layer, ...size };
 }
 export function fitDocumentText(
   doc: DesignDocument,
@@ -56,7 +68,7 @@ export function fitDocumentText(
       textMetricKeys.every((k) => old[k] === l[k])
     )
       return l;
-    const next = fitText(l);
+    const next = fitText(l, undefined, old ? () => ({ width: old.width, height: old.height }) : undefined);
     changed ||= next !== l;
     return next;
   });

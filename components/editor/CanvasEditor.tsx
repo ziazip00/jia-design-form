@@ -3,7 +3,7 @@ import { Stage, Layer, Rect, Group, Transformer } from "react-konva";
 import Konva from "konva";
 import { useEditorStore } from "@/store/editorStore";
 import { LayerNode } from "./LayerNodes";
-import { fitText } from "@/lib/textSizing";
+import { fitText, autoTextSize } from "@/lib/textSizing";
 import { useFontStore } from "@/store/fontStore";
 import type { TextLayer } from "@/types/design";
 import { fillsOf } from "@/lib/layerStyles";
@@ -26,14 +26,15 @@ export default function CanvasEditor({
   const host = useRef<HTMLDivElement>(null),
     transformer = useRef<Konva.Transformer>(null);
   const [area, setArea] = useState({ width: 700, height: 700 }),
-    [zoom, setZoom] = useState(1),
-    [editing, setEditing] = useState<{
-      layer: TextLayer;
-      value: string;
-    } | null>(null);
-  const fonts = useFontStore((s) => s.fonts);
-  const [fontVersion, setFontVersion] = useState(0);
-  const cancelled = useRef(false);
+    [zoom, setZoom] = useState(1);
+    const [editing, setEditing] = useState<{
+        layer: TextLayer;
+        value: string;
+      } | null>(null);
+    const fonts = useFontStore((s) => s.fonts);
+    const [fontVersion, setFontVersion] = useState(0);
+    const cancelled = useRef(false);
+    const prevText = useRef<string | undefined>(undefined);
   useEffect(() => {
     let active = true;
     const refresh = () => {
@@ -51,7 +52,13 @@ export default function CanvasEditor({
     };
   }, [fonts]);
   const draft = editing
-    ? fitText({ ...editing.layer, text: editing.value })
+    ? fitText(
+        { ...editing.layer, text: editing.value },
+        undefined,
+        prevText.current
+          ? () => autoTextSize({ ...editing.layer, text: prevText.current! })
+          : undefined,
+      )
     : null;
   const fit = Math.min(
     (area.width - 100) / doc.canvas.width,
@@ -98,6 +105,7 @@ export default function CanvasEditor({
       setEditing(null);
       useEditorStore.getState().clearPreview();
     }
+    prevText.current = undefined;
   };
   return (
     <main
@@ -172,6 +180,7 @@ export default function CanvasEditor({
                       if (l.type === "text" && !l.locked) {
                         cancelled.current = false;
                         select(l.id);
+                        prevText.current = l.text;
                         setEditing({ layer: l, value: l.text });
                       }
                     }}
@@ -238,8 +247,17 @@ export default function CanvasEditor({
               value={editing.value}
               onChange={(e) => {
                 const value = e.target.value;
+                prevText.current = editing.value;
                 setEditing({ ...editing, value });
-                const next = fitText({ ...editing.layer, text: value });
+                const prevSize = autoTextSize({
+                  ...editing.layer,
+                  text: prevText.current!,
+                });
+                const next = fitText(
+                  { ...editing.layer, text: value },
+                  undefined,
+                  () => prevSize,
+                );
                 useEditorStore
                   .getState()
                   .previewTransform(editing.layer.id, {
@@ -255,6 +273,7 @@ export default function CanvasEditor({
                   cancelled.current = true;
                   setEditing(null);
                   useEditorStore.getState().clearPreview();
+                  prevText.current = undefined;
                 }
                 if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) finish();
               }}
