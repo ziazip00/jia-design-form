@@ -9,11 +9,34 @@ export interface Stroke extends Paint {
   position: "inside" | "center" | "outside";
 }
 export interface LayerEffect extends Paint {
-  type: "shadow" | "inner" | "blur" | "glow";
+  type: "shadow" | "inner" | "blur" | "glow" | "stroke" | "gradientOverlay" | "patternOverlay" | "satin" | "bevelEmboss";
   x: number;
   y: number;
   blur: number;
   spread: number;
+  angle?: number;
+  distance?: number;
+  size?: number;
+  opacity: number;
+  gradientType?: "linear" | "radial";
+  gradientStops?: { color: string; position: number }[];
+  pattern?: string;
+  bevelStyle?: "outer" | "inner";
+  bevelDepth?: number;
+  bevelDirection?: number;
+  satinOpacity?: number;
+  satinBlur?: number;
+  satinEdge?: number;
+}
+export interface PathPoint {
+  x: number;
+  y: number;
+  handleIn?: { x: number; y: number };
+  handleOut?: { x: number; y: number };
+}
+export interface PathData {
+  closed: boolean;
+  points: PathPoint[];
 }
 export interface BaseLayer {
   fills?: Paint[];
@@ -33,6 +56,9 @@ export interface BaseLayer {
   visible: boolean;
   locked: boolean;
   zIndex: number;
+  artboardId: string;
+  parentId: string | null;
+  groupId: string | null;
   shadowColor?: string;
   shadowEnabled?: boolean;
   shadowOpacity?: number;
@@ -71,11 +97,12 @@ export interface ImageLayer extends BaseLayer {
 }
 export interface ShapeLayer extends BaseLayer {
   type: "shape";
-  shape: "rectangle" | "rounded" | "circle";
+  shape: "rectangle" | "rounded" | "circle" | "path";
   fill: string;
   stroke: string;
   strokeWidth: number;
   radius: number;
+  path?: PathData;
 }
 export interface IconLayer extends BaseLayer {
   type: "icon";
@@ -88,10 +115,87 @@ export type LayerPatch = Partial<BaseLayer> &
   Partial<Omit<ImageLayer, "type">> &
   Partial<Omit<ShapeLayer, "type">> &
   Partial<Omit<IconLayer, "type">>;
-export interface DesignDocument {
-  palette?: { id: string; colors: string[] };
+export interface Artboard {
   id: string;
   name: string;
-  canvas: { width: number; height: number; background: string };
-  layers: DesignLayer[];
+  width: number;
+  height: number;
+  background: string;
+  x: number;
+  y: number;
+  visible: boolean;
+  locked: boolean;
 }
+export interface GroupData {
+  id: string;
+  name: string;
+  artboardId: string;
+  layerIds: string[];
+  visible: boolean;
+  locked: boolean;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  opacity: number;
+}
+export type AdjustmentType =
+  | "brightness"
+  | "levels"
+  | "curves"
+  | "exposure"
+  | "hue"
+  | "colorBalance"
+  | "grayscale"
+  | "photoFilter"
+  | "channelMixer"
+  | "selectiveColor"
+  | "gradientMap"
+  | "invert"
+  | "threshold"
+  | "posterize";
+export interface AdjustmentLayerData {
+  id: string;
+  name: string;
+  type: "adjustment";
+  artboardId: string;
+  adjustmentType: AdjustmentType;
+  values: Record<string, number | string | boolean>;
+  visible: boolean;
+  locked: boolean;
+}
+export interface FillLayerData {
+  id: string;
+  name: string;
+  type: "fill";
+  artboardId: string;
+  fillType: "solid" | "gradient" | "pattern";
+  color?: string;
+  gradient?: {
+    type: "linear" | "radial";
+    angle: number;
+    stops: { color: string; position: number }[];
+  };
+  pattern?: string;
+  visible: boolean;
+  locked: boolean;
+}
+export type ProjectLayer = DesignLayer | AdjustmentLayerData | FillLayerData;
+export interface ProjectDocument {
+  id: string;
+  name: string;
+  artboards: Artboard[];
+  layers: ProjectLayer[];
+  groups: GroupData[];
+  selectedArtboardId: string;
+  selectedLayerIds: string[];
+  zoom: number;
+  pan: { x: number; y: number };
+}
+export type DesignDocument = ProjectDocument;
+export type DesignLayerPatch = Partial<BaseLayer> &
+  Partial<Omit<TextLayer, "type" | "artboardId" | "parentId" | "groupId">> &
+  Partial<Omit<ImageLayer, "type" | "artboardId" | "parentId" | "groupId">> &
+  Partial<Omit<ShapeLayer, "type" | "artboardId" | "parentId" | "groupId">> &
+  Partial<Omit<IconLayer, "type" | "artboardId" | "parentId" | "groupId">>;

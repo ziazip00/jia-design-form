@@ -6,7 +6,7 @@ import { images } from "../server/images.mjs";
 import { Readable } from "node:stream";
 
 const root = path.resolve("out");
-const port = Number(process.env.PORT || 3000);
+const port = Number(process.env.PORT || 3001);
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",

@@ -272,15 +272,22 @@ h3 {
   padding: 0 20px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
+  flex-grow: 0;
+}
+.panel-heading h2 {
+  flex-shrink: 0;
 }
 .tiny-label {
   font-size: 10px;
   color: #97a1ac;
   margin-left: auto;
+  flex-shrink: 0;
 }
 .assets {
+  flex-shrink: 0;
   padding: 22px 18px;
   border-bottom: 1px solid var(--line);
+  min-height: 0;
 }
 .assets h3 {
   margin-bottom: 15px;
@@ -340,6 +347,9 @@ h3 {
   justify-content: space-between;
 }
 .layers-panel > .section-title {
+  padding: 0;
+}
+.layers-panel .section-inner {
   padding: 20px;
 }
 .section-title > span {
@@ -393,6 +403,152 @@ h3 {
   color: #a0abb7;
   line-height: 1.9;
   padding: 30px 0;
+}
+.layer-bottom-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line);
+  background: #f8f9fb;
+}
+.bottom-label {
+  font-size: 10px;
+  color: #8c98a7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+.layer-bottom-tools button {
+  font-size: 11px;
+  padding: 6px 10px;
+  gap: 5px;
+  background: white;
+  border: 1px solid #e1e6ec;
+}
+.layer-bottom-tools button:hover:not(:disabled) {
+  background: #f0f4f8;
+  border-color: #c8d0da;
+}
+.layer-bottom-tools button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.artboard-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line);
+}
+.artboard-list > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.artboard-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #e1e6ec;
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.artboard-item.active {
+  border-color: var(--blue);
+  background: var(--soft);
+}
+.artboard-item button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: inherit;
+}
+.artboard-item button:hover {
+  background: #f0f4f8;
+}
+.artboard-item .artboard-size {
+  font-size: 9px;
+  color: #8c98a7;
+}
+.artboard-item button:not(.active) {
+  color: #7f8fa0;
+}
+.artboard-add-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+  gap: 5px;
+  background: white;
+  border: 1px dashed #c8d0da;
+  border-radius: 5px;
+  color: #7f8fa0;
+}
+.artboard-add-btn:hover {
+  background: #f0f4f8;
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.group-indicator {
+  color: var(--blue);
+  margin-right: 2px;
+}
+.artboard-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #7f8fa0;
+}
+.artboard-tab:hover {
+  background: #f0f4f8;
+}
+.artboard-tab.active {
+  background: var(--soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.artboard-tab .artboard-size {
+  font-size: 10px;
+  color: #8c98a7;
+}
+.artboard-tab.active .artboard-size {
+  color: var(--muted);
+}
+.artboard-add {
+  padding: 6px 10px;
+  font-size: 16px;
+  background: transparent;
+  border: 1px dashed #c8d0da;
+  border-radius: 6px;
+  color: #7f8fa0;
+  width: auto;
+}
+.artboard-add:hover {
+  background: var(--soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.artboard-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
 }
 .center {
   flex: 1;
@@ -634,6 +790,33 @@ h3 {
   flex-shrink: 0;
   border-left: 1px solid var(--line);
   overflow-y: auto;
+}
+
+/* 패널 리사이즈 splitter */
+.panel-splitter {
+  height: 10px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+}
+.panel-splitter::before {
+  content: "";
+  position: absolute;
+  inset: -3px 0;
+  border-top: 1px solid var(--line);
+  transition: border-color 0.15s ease;
+}
+.panel-splitter:hover::before,
+.panel-splitter.active::before {
+  border-top-color: var(--blue);
+}
+.panel-splitter.active {
+  background: var(--soft);
+}
+.panel-splitter.active::before {
+  border-top-width: 2px;
 }
 
 /* Object inspector and contextual tools share a quiet dark editing surface. */

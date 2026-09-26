@@ -1,23 +1,31 @@
 import { makeLayer } from "./designParser";
-import type { DesignDocument } from "../types/design";
+import type { DesignDocument, ProjectDocument } from "../types/design";
 export function parseExchange(input: unknown): DesignDocument {
-  const d = input as DesignDocument;
+  const d = input as unknown as ProjectDocument;
   const finite = (n: unknown) =>
     typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 100000;
   const color = (s: unknown) =>
     typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s);
   if (
     !d ||
-    !d.canvas ||
-    !finite(d.canvas.width) ||
-    !finite(d.canvas.height) ||
-    d.canvas.width < 1 ||
-    d.canvas.height < 1 ||
-    d.canvas.width > 8192 ||
-    d.canvas.height > 8192 ||
-    !color(d.canvas.background) ||
+    !d.artboards ||
+    !Array.isArray(d.artboards) ||
     !Array.isArray(d.layers) ||
     d.layers.length > 500
+  )
+    throw new Error(
+      "지원하지 않는 디자인 문서입니다 (최대 8192px, 500레이어).",
+    );
+  const artboard = d.artboards[0] || { width: 1080, height: 1350, background: "#ffffff" };
+  if (
+    !artboard ||
+    !finite(artboard.width) ||
+    !finite(artboard.height) ||
+    artboard.width < 1 ||
+    artboard.height < 1 ||
+    artboard.width > 8192 ||
+    artboard.height > 8192 ||
+    !color(artboard.background)
   )
     throw new Error(
       "지원하지 않는 디자인 문서입니다 (최대 8192px, 500레이어).",

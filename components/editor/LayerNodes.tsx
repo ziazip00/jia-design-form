@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Text, Rect, Ellipse, Image as KImage, Path, Shape } from "react-konva";
 import Konva from "konva";
-import type { DesignLayer, ImageLayer, TextLayer } from "@/types/design";
+import type { DesignLayer, ImageLayer, TextLayer, ShapeLayer, PathData } from "@/types/design";
 import { useFontStore } from "@/store/fontStore";
 import { advancedStyle } from "@/lib/layerStyles";
 import StyledLayer from "./StyledLayer";
@@ -167,6 +167,48 @@ export function LayerNode({ layer: l }: { layer: DesignLayer }) {
     case "image":
       return <ImageNode layer={l} />;
     case "shape":
+      if (l.shape === "path" && (l as ShapeLayer).path) {
+        const pathData = (l as ShapeLayer).path as PathData;
+        if (pathData.points.length >= 2) {
+          const parts: string[] = [];
+          pathData.points.forEach((p, i) => {
+            if (i === 0) {
+              parts.push(`M${p.x} ${p.y}`);
+            } else {
+              const prev = pathData.points[i - 1];
+              if (prev.handleOut || p.handleIn) {
+                const hOut = prev.handleOut || { x: p.x, y: prev.y };
+                const hIn = p.handleIn || { x: p.x, y: prev.y };
+                parts.push(`C${hOut.x} ${hOut.y} ${hIn.x} ${hIn.y} ${p.x} ${p.y}`);
+              } else {
+                parts.push(`L${p.x} ${p.y}`);
+              }
+            }
+          });
+          if (pathData.closed && pathData.points.length >= 3) {
+            const first = pathData.points[0];
+            const last = pathData.points[pathData.points.length - 1];
+            if (last.handleOut || first.handleIn) {
+              const hOut = last.handleOut || { x: first.x, y: last.y };
+              const hIn = first.handleIn || { x: first.x, y: last.y };
+              parts.push(`C${hOut.x} ${hOut.y} ${hIn.x} ${hIn.y} ${first.x} ${first.y}`);
+            } else {
+              parts.push(`L${first.x} ${first.y}`);
+            }
+            parts.push("Z");
+          }
+          return (
+            <Path
+              {...shadow(l)}
+              data={parts.join(" ")}
+              fill={l.fill}
+              stroke={l.stroke}
+              strokeWidth={l.strokeWidth}
+              listening
+            />
+          );
+        }
+      }
       return l.shape === "circle" ? (
         <Ellipse
           {...shadow(l)}

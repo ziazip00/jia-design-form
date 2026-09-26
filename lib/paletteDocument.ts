@@ -1,4 +1,4 @@
-import type { DesignDocument, DesignLayer } from "../types/design";
+import type { ProjectDocument, DesignLayer, Artboard } from "../types/design";
 import { fillsOf } from "./layerStyles";
 import {
   dominantColors,
@@ -45,7 +45,7 @@ export function originOf(l: DesignLayer, origins: ColorOrigins) {
   );
 }
 export function captureOrigins(
-  doc: DesignDocument,
+  doc: ProjectDocument,
   origins: ColorOrigins,
 ): ColorOrigins {
   const layers = { ...origins.layers };
@@ -66,8 +66,12 @@ export function captureOrigins(
       layers[l.id] = layers[l.id].map((o) => (o === old ? updated : o));
     }
   }
+  const canvas: Record<string, string> = {};
+  for (const artboard of doc.artboards) {
+    canvas[artboard.id] = artboard.background;
+  }
   return {
-    canvas: { [doc.id]: doc.canvas.background, ...origins.canvas },
+    canvas: { ...canvas, ...origins.canvas },
     layers,
   };
 }
@@ -86,16 +90,16 @@ function replaceColors(
   return result as unknown as DesignLayer;
 }
 export function originalDocument(
-  doc: DesignDocument,
+  doc: ProjectDocument,
   origins: ColorOrigins,
-): DesignDocument {
+): ProjectDocument {
   return {
     ...doc,
     palette: undefined,
-    canvas: {
-      ...doc.canvas,
-      background: origins.canvas[doc.id] ?? doc.canvas.background,
-    },
+    artboards: doc.artboards.map((a) => ({
+      ...a,
+      background: origins.canvas[a.id] ?? a.background,
+    })),
     layers: doc.layers.map((l) => {
       if (l.locked || !l.visible) return l;
       const o = originOf(l, origins);
@@ -107,7 +111,7 @@ export function originalDocument(
     }),
   };
 }
-export function designColors(doc: DesignDocument) {
+export function designColors(doc: ProjectDocument) {
   const pixels: number[] = [];
   for (const l of doc.layers.filter((l) => l.visible && !l.locked)) {
     for (const color of Object.values(colorsOf(l))) {
@@ -118,12 +122,15 @@ export function designColors(doc: DesignDocument) {
       );
     }
   }
-  pixels.push(
-    ...[1, 3, 5].map((i) =>
-      parseInt(doc.canvas.background.slice(i, i + 2), 16),
-    ),
-    255,
-  );
+  for (const artboard of doc.artboards) {
+    const bg = artboard.background;
+    if (/^#[0-9a-f]{6}$/i.test(bg)) {
+      pixels.push(
+        ...[1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16)),
+        255,
+      );
+    }
+  }
   return dominantColors(new Uint8ClampedArray(pixels));
 }
 function localPoint(l: DesignLayer, x: number, y: number) {
@@ -136,13 +143,17 @@ function localPoint(l: DesignLayer, x: number, y: number) {
   };
 }
 function backdrop(
-  doc: DesignDocument,
+  doc: ProjectDocument,
   index: number,
   x: number,
   y: number,
   analyses: ImageAnalyses,
 ) {
-  let color = doc.canvas.background;
+  const currentLayer = doc.layers[index];
+  const artboardId = (currentLayer as DesignLayer).artboardId ||
+    doc.artboards[0]?.id;
+  const artboard = doc.artboards.find((a) => a.id === artboardId);
+  let color = artboard?.background ?? "#ffffff";
   for (const l of doc.layers.slice(0, index)) {
     if (!l.visible || l.type === "text") continue;
     const p = localPoint(l, x, y);
@@ -176,7 +187,7 @@ function backdrop(
   return color;
 }
 export function applyPalette(
-  doc: DesignDocument,
+  doc: ProjectDocument,
   origins: ColorOrigins,
   source: string[],
   target: string[],
@@ -191,17 +202,17 @@ export function applyPalette(
   )
     ? designColors(original)
     : source;
-  let next: DesignDocument = {
+  let next: ProjectDocument = {
     ...doc,
     palette: { id, colors: [...target] },
-    canvas: {
-      ...doc.canvas,
+    artboards: original.artboards.map((a) => ({
+      ...a,
       background: mapColor(
-        original.canvas.background,
+        a.background,
         vectorSource,
         rankedTarget,
       ),
-    },
+    })),
     layers: original.layers.map((l) => {
       if (l.locked || !l.visible) return l;
       const values = colorsOf(l);

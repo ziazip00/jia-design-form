@@ -21,10 +21,11 @@ export async function renderDesign(
   for (const node of stage.find("Image")) {
     if (!node.getAttr("image")) throw new Error("이미지 로딩 중");
   }
+  const artboard = doc.artboards.find((a) => a.id === doc.selectedArtboardId) || doc.artboards[0];
   const copy = stage.clone({
     container: document.createElement("div"),
-    width: doc.canvas.width,
-    height: doc.canvas.height,
+    width: artboard.width,
+    height: artboard.height,
     scaleX: 1,
     scaleY: 1,
   }) as Konva.Stage;

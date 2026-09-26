@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type Konva from "konva";
 import {
   LayoutTemplate,
   Type,
   ImagePlus,
   Shapes,
-  Layers,
   Sparkles,
   Plus,
   Upload,
@@ -31,6 +30,7 @@ import type { ImageLayer } from "@/types/design";
 import CropDialog from "./CropDialog";
 import ImageEditDialog from "./ImageEditDialog";
 import type { ImageAction } from "./ImageContextToolbar";
+import Splitter from "./Splitter";
 export default function Editor() {
   const stageRef = useRef<Konva.Stage>(null),
     fileRef = useRef<HTMLInputElement>(null);
@@ -72,8 +72,10 @@ export default function Editor() {
         e.preventDefault();
         state.remove();
       }
-      if (e.key === "Escape") state.select(null);
-      const l = state.document.layers.find((l) => l.id === state.selectedId);
+      if (e.key === "Escape") state.selectArtboard(state.selectedArtboardId);
+      const l = state.document.layers.find(
+        (l) => l.id === state.selectedLayerIds[0],
+      );
       if (l && e.key.startsWith("Arrow")) {
         e.preventDefault();
         const d = e.shiftKey ? 10 : 1;
@@ -168,7 +170,6 @@ export default function Editor() {
             { name: "Text", icon: Type },
             { name: "Image", icon: ImagePlus },
             { name: "Shape", icon: Shapes },
-            { name: "Layers", icon: Layers },
           ].map(({ name, icon: Icon }) => (
             <button
               className={tab === name ? "active" : ""}
@@ -195,13 +196,11 @@ export default function Editor() {
           </div>
           <div className="assets">
             <h3>
-              {tab === "Layers"
-                ? "레이어 관리"
-                : tab === "Icon"
-                  ? "기본 아이콘"
-                  : tab === "Shape"
-                    ? "기본 도형"
-                    : "만들기를 시작하세요"}
+              {tab === "Icon"
+                ? "기본 아이콘"
+                : tab === "Shape"
+                  ? "기본 도형"
+                  : "만들기를 시작하세요"}
             </h3>
             {tab === "Icon" ? (
               <div className="asset-grid">
@@ -290,6 +289,7 @@ export default function Editor() {
               </button>
             )}
           </div>
+          <Splitter id="sidebar-assets-layer" />
           <LayerPanel />
         </aside>
         <div className="center">
@@ -299,7 +299,7 @@ export default function Editor() {
               const l = useEditorStore
                 .getState()
                 .document.layers.find(
-                  (l) => l.id === useEditorStore.getState().selectedId,
+                  (l) => l.id === useEditorStore.getState().selectedLayerIds[0],
                 );
               if (l?.type !== "image" || l.locked) return;
               if (action === "region") startSeparation();

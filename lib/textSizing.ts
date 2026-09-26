@@ -1,5 +1,5 @@
 import Konva from "konva";
-import type { TextLayer, DesignDocument } from "../types/design";
+import type { TextLayer, ProjectDocument } from "../types/design";
 export const textMetricKeys = [
   "text",
   "fontFamily",
@@ -54,10 +54,10 @@ export function fitText(
   return { ...layer, ...size };
 }
 export function fitDocumentText(
-  doc: DesignDocument,
-  previous?: DesignDocument,
+  doc: ProjectDocument,
+  previous?: ProjectDocument,
   force = false,
-): DesignDocument {
+): ProjectDocument {
   let changed = false;
   const layers = doc.layers.map((l) => {
     if (l.type !== "text") return l;
@@ -68,7 +68,7 @@ export function fitDocumentText(
       textMetricKeys.every((k) => old[k] === l[k])
     )
       return l;
-    const next = fitText(l, undefined, old ? () => ({ width: old.width, height: old.height }) : undefined);
+    const next = fitText(l as TextLayer, undefined, old && old.type === "text" ? () => ({ width: (old as TextLayer).width, height: (old as TextLayer).height }) : undefined);
     changed ||= next !== l;
     return next;
   });

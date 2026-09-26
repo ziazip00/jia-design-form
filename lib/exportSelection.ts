@@ -1,5 +1,5 @@
 import Konva from "konva";
-import type { DesignLayer } from "../types/design";
+import type { DesignLayer, ProjectDocument } from "../types/design";
 import { effectsOf, fillsOf, strokesOf, stylePadding } from "./layerStyles";
 import { iconPath } from "./renderLayerStyle";
 export function supportsSVG(l: DesignLayer) {
@@ -54,6 +54,7 @@ export async function exportSelection(
   l: DesignLayer,
   format: "png" | "jpeg" | "svg",
   scale: number,
+  doc: ProjectDocument,
 ) {
   await document.fonts.ready;
   let url: string;

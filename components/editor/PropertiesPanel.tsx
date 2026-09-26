@@ -1,6 +1,6 @@
 import type Konva from "konva";
 import { useEditorStore } from "@/store/editorStore";
-import type { LayerPatch } from "@/types/design";
+import type { DesignLayerPatch } from "@/types/design";
 import PositionSection from "./properties/PositionSection";
 import AppearanceSection from "./properties/AppearanceSection";
 import FillSection from "./properties/FillSection";
@@ -18,13 +18,16 @@ export default function PropertiesPanel({
   stageRef: React.RefObject<Konva.Stage | null>;
 }) {
   const s = useEditorStore(),
-    base = (s.palettePreview??s.document).layers.find((l) => l.id === s.selectedId),
+    base = (s.palettePreview ?? s.document).layers.find(
+      (l) => l.id === s.selectedLayerIds[0],
+    ),
     l =
       base && s.preview?.id === base.id
         ? { ...base, ...s.preview.values }
         : base;
-  const patch = (p: LayerPatch) => l && s.patch(l.id, p);
+  const patch = (p: DesignLayerPatch) => l && s.patch(l.id, p);
   const props = l ? { layer: l, patch } : null;
+  const selectedType = l ? l.type : null;
   return (
     <aside className="properties inspector-dark">
       <div className="panel-heading">
@@ -105,19 +108,24 @@ export default function PropertiesPanel({
             <h3>편집할 객체를 선택하세요</h3>
             <p>위치, 색상, 효과를 이곳에서 조절합니다.</p>
           </div>
-          <Section title="캔버스">
+          <Section title="아트보드">
             <ColorField
               label="배경 색상"
-              value={s.document.canvas.background}
-              onChange={(background) =>
-                s.commit({
-                  ...s.document,
-                  canvas: { ...s.document.canvas, background },
-                })
-              }
+              value={s.document.artboards.find((a) => a.id === s.selectedArtboardId)?.background || "#ffffff"}
+              onChange={(background) => {
+                const artboard = s.document.artboards.find((a) => a.id === s.selectedArtboardId);
+                if (artboard) {
+                  s.commit({
+                    ...s.document,
+                    artboards: s.document.artboards.map((a) =>
+                      a.id === s.selectedArtboardId ? { ...a, background } : a
+                    ),
+                  });
+                }
+              }}
             />
             <p className="hint">
-              {s.document.canvas.width} × {s.document.canvas.height} px
+              {s.document.artboards.find((a) => a.id === s.selectedArtboardId)?.width || 1080} × {s.document.artboards.find((a) => a.id === s.selectedArtboardId)?.height || 1350} px
             </p>
           </Section>
         </>

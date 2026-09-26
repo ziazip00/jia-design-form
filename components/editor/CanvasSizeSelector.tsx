@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
+import type { Artboard } from "@/types/design";
 const presets = [
   ["Instagram Square", 1080, 1080],
   ["Instagram Portrait", 1080, 1350],
@@ -8,15 +9,25 @@ const presets = [
   ["Popup", 500, 667],
 ] as const;
 export default function CanvasSizeSelector() {
-  const { document: doc, commit } = useEditorStore();
+  const { document: doc, commit, selectedArtboardId } = useEditorStore();
+  const artboard = doc.artboards.find((a) => a.id === selectedArtboardId) ||
+    doc.artboards[0] || null;
   const [open, setOpen] = useState(false);
+  const sizeLabel = artboard ? `${artboard.width} × ${artboard.height}` : "—";
+  const currentWidth = artboard?.width ?? 1080;
+  const currentHeight = artboard?.height ?? 1350;
+  const updateArtboard = (patch: Partial<Artboard>) => {
+    if (!artboard) return;
+    const nextArtboards = doc.artboards.map((a) =>
+      a.id === artboard.id ? { ...a, ...patch } : a,
+    );
+    commit({ ...doc, artboards: nextArtboards });
+  };
   return (
     <div className="size-selector">
       <button onClick={() => setOpen(!open)}>
         Canvas Size{" "}
-        <span>
-          {doc.canvas.width} × {doc.canvas.height}
-        </span>
+        <span>{sizeLabel}</span>
         ⌄
       </button>
       {open && (
@@ -26,27 +37,21 @@ export default function CanvasSizeSelector() {
             <button
               key={name}
               onClick={() => {
-                commit({ ...doc, canvas: { ...doc.canvas, width, height } });
+                updateArtboard({ width, height });
                 setOpen(false);
               }}
             >
               {name}
-              <small>
-                {width} × {height}
-              </small>
+              <small>{width} × {height}</small>
             </button>
           ))}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const d = new FormData(e.currentTarget);
-              commit({
-                ...doc,
-                canvas: {
-                  ...doc.canvas,
-                  width: Number(d.get("width")),
-                  height: Number(d.get("height")),
-                },
+              updateArtboard({
+                width: Number(d.get("width")),
+                height: Number(d.get("height")),
               });
               setOpen(false);
             }}
@@ -60,7 +65,7 @@ export default function CanvasSizeSelector() {
                 min="100"
                 max="4096"
                 required
-                defaultValue={doc.canvas.width}
+                defaultValue={currentWidth}
               />
               <input
                 aria-label="Custom Height"
@@ -69,7 +74,7 @@ export default function CanvasSizeSelector() {
                 min="100"
                 max="4096"
                 required
-                defaultValue={doc.canvas.height}
+                defaultValue={currentHeight}
               />
             </div>
             <button className="primary" type="submit">
